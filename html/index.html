@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Boarding House Rental System | Search. Compare. Reserve.</title>
+<meta name="description" content="A centralized platform for students to search, compare, and reserve boarding houses near their school." />
+
+<!-- Google Fonts: Poppins for display, Inter for body text -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+<link rel="stylesheet" href="../home.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     NAVIGATION BAR
+============================================================ -->
+<header class="navbar" id="navbar">
+  <div class="navbar__inner">
+    <a href="#top" class="navbar__brand">
+      <img src="../Image/logo.png" alt="" class="navbar__logo" />
+      <span><strong>BOARDING HOUSE RENTAL SYSTEM</strong></span>
+    </a>
+
+    <nav class="navbar__links" id="navLinks">
+      <a href="#top" class="navlink is-active">Home</a>
+      <a href="#listings" class="navlink">Boarding Houses</a>
+      <a href="#siit-map" class="navlink">Near SIIT</a>
+      <a href="#how-it-works" class="navlink">How It Works</a>
+      <a href="#about" class="navlink">About Us</a>
+      <a href="#footer" class="navlink">Contact</a>
+
+      <!-- Actions shown inline inside the mobile drawer -->
+      <div class="navbar__actions navbar__actions--mobile">
+        <a href="loginform.html" class="btn btn--ghost">Login</a>
+        <a href="#search" class="btn btn--lime">Find a Room</a>
+      </div>
+    </nav>
+
+    <div class="navbar__actions navbar__actions--desktop">
+      <a href="loginform.html" class="btn btn--ghost">Login</a>
+      <a href="#search" class="btn btn--lime">Find a Room</a>
+    </div>
+
+    <button class="navbar__burger" id="burgerBtn" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================================================
+       HERO SECTION
+  ============================================================ -->
+  <section class="hero">
+    <div class="hero__shape hero__shape--1" aria-hidden="true"></div>
+    <div class="hero__shape hero__shape--2" aria-hidden="true"></div>
+
+    <div class="hero__inner">
+      <div class="hero__copy reveal">
+        <span class="eyebrow">SMARTER RENTAL EXPERIENCE</span>
+        <h1 class="hero__headline">
+          FIND YOUR PERFECT <span class="text-lime">BOARDING HOUSE</span>
+        </h1>
+        <p class="hero__sub">
+          Search, compare, and reserve comfortable boarding houses in one convenient platform.
+        </p>
+        <div class="hero__cta">
+          <a href="#search" class="btn btn--lime btn--lg">Find a Boarding House <span aria-hidden="true">&rarr;</span></a>
+          <a href="#about" class="btn btn--outline-light btn--lg">Learn More</a>
+        </div>
+        <ul class="hero__trust">
+          <li><strong>500+</strong> Available Rooms</li>
+          <li><strong>&#10003;</strong> Verified Listings</li>
+          <li><strong>&#10003;</strong> Easy Reservation</li>
+        </ul>
+      </div>
+
+      <div class="hero__art reveal" aria-hidden="true">
+        <div class="hero__art-card">
+          <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" class="hero__svg">
+            <circle cx="160" cy="160" r="150" fill="rgba(168,241,90,0.10)" />
+            <circle cx="160" cy="160" r="118" fill="rgba(168,241,90,0.10)" />
+            <ellipse cx="160" cy="262" rx="96" ry="10" fill="rgba(255,255,255,0.08)" />
+            <!-- house -->
+            <rect x="92" y="150" width="150" height="98" rx="12" fill="#F8F8F1" />
+            <path d="M78 164 L167 92 L256 164 L238 164 L167 108 L96 164 Z" fill="#F8F8F1" />
+            <path d="M167 92 L256 164 L238 164 L167 108 Z" fill="#DFF8C5" />
+            <rect x="108" y="170" width="26" height="26" rx="6" fill="#A8F15A" />
+            <rect x="200" y="170" width="26" height="26" rx="6" fill="#A8F15A" />
+            <rect x="146" y="200" width="42" height="48" rx="8" fill="#073F3B" />
+            <circle cx="178" cy="224" r="3.5" fill="#F8F8F1" />
+            <!-- pin -->
+            <g class="pin-drop">
+              <path d="M167 8c-19 0-34 15-34 34 0 25 34 58 34 58s34-33 34-58c0-19-15-34-34-34Z" fill="#A8F15A" />
+              <circle cx="167" cy="42" r="13" fill="#073F3B" />
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SEARCH PANEL (overlaps hero bottom edge)
+  ============================================================ -->
+  <section class="search-panel reveal" id="search">
+    <div class="search-panel__inner">
+      <h2 class="search-panel__title">Find a Place That Feels Like Home</h2>
+
+      <form class="search-form" id="searchForm">
+        <div class="search-field">
+          <label for="fLocation">Location</label>
+          <input type="text" id="fLocation" placeholder="Enter location" />
+        </div>
+        <div class="search-field">
+          <label for="fPrice">Price Range</label>
+          <input type="number" id="fPrice" placeholder="Maximum monthly rent" min="0" />
+        </div>
+        <div class="search-field">
+          <label for="fType">Room Type</label>
+          <select id="fType">
+            <option value="">Any type</option>
+            <option value="Single Room">Single Room</option>
+            <option value="Shared Room">Shared Room</option>
+            <option value="Bedspace">Bedspace</option>
+          </select>
+        </div>
+        <div class="search-field">
+          <label for="fAvailability">Availability</label>
+          <select id="fAvailability">
+            <option value="">Any status</option>
+            <option value="Available">Available Now</option>
+            <option value="Coming Soon">Coming Soon</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn--dark search-form__submit">Search Rooms</button>
+      </form>
+      <p class="search-panel__hint" id="searchHint" role="status"></p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURES SECTION
+  ============================================================ -->
+  <section class="features">
+    <div class="section-head reveal">
+      <span class="eyebrow eyebrow--dark">OUR PLATFORM</span>
+      <h2>Everything You Need for a Better Rental Experience</h2>
+    </div>
+
+    <div class="features__grid">
+      <article class="feature-card feature-card--white reveal">
+        <div class="feature-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.35-4.35" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Easy Room Search</h3>
+        <p>Find available boarding houses quickly using location, price, and room filters.</p>
+        <a href="#listings" class="feature-card__link">Explore Rooms &rarr;</a>
+      </article>
+
+      <article class="feature-card feature-card--lime reveal">
+        <div class="feature-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h8M8 17h5" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Complete Information</h3>
+        <p>View room details, rental prices, amenities, availability, and property information in one place.</p>
+        <a href="#listings" class="feature-card__link">View Details &rarr;</a>
+      </article>
+
+      <article class="feature-card feature-card--dark reveal">
+        <div class="feature-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke-linecap="round"/><path d="m8.5 14 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Easy Reservation</h3>
+        <p>Send reservation requests and connect with landlords through an organized rental process.</p>
+        <a href="#search" class="feature-card__link">Reserve a Room &rarr;</a>
+      </article>
+    </div>
+  </section>
+ 
+  <!-- ============================================================
+       ABOUT / SYSTEM INTRODUCTION SECTION
+  ============================================================ -->
+  <section class="about" id="about">
+    <div class="about__media reveal" aria-hidden="true">
+      <img class="about__img about__img--main" src="../Image/BGINFO.jpg" alt="" loading="lazy" />
+      <img class="about__img about__img--sm about__img--sm1" src="../Image/BGINFO1.png" alt="" loading="lazy" />
+      <img class="about__img about__img--sm about__img--sm2" src="../Image/BGINFO3.png" alt="" loading="lazy" />
+    </div>
+
+    <div class="about__copy reveal">
+      <span class="eyebrow eyebrow--dark">WHY CHOOSE OUR PLATFORM?</span>
+      <h2>A Smarter Way to Find and Manage Boarding Houses</h2>
+      <p>
+        Finding suitable accommodation can be scattered, uncertain, and time-consuming.
+        Our Boarding House Rental System provides one organized platform where students
+        can discover available rooms, compare rental information, check amenities, and
+        submit reservation requests.
+      </p>
+      <a href="#listings" class="btn btn--outline-dark">Learn More <span aria-hidden="true">&rarr;</span></a>
+
+      <div class="about__stats">
+        <div class="stat">
+          <span class="stat__num" data-count="10">0</span><span class="stat__plus">+</span>
+          <span class="stat__label">Boarding Houses</span>
+        </div>
+        <div class="stat">
+          <span class="stat__num" data-count="50">0</span><span class="stat__plus">+</span>
+          <span class="stat__label">Available Rooms</span>
+        </div>
+        <div class="stat">
+          <span class="stat__num" data-count="100">0</span><span class="stat__plus">+</span>
+          <span class="stat__label">Potential Tenants</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BOARDING HOUSE LISTINGS PREVIEW
+  ============================================================ -->
+  <section class="listings" id="listings">
+    <div class="section-head reveal">
+      <span class="eyebrow eyebrow--dark">FEATURED LISTINGS</span>
+      <h2>Featured Boarding Houses</h2>
+      <p class="section-head__sub">Explore available accommodations and find a room that fits your needs.</p>
+    </div>
+
+    <div class="listings__grid" id="listingsGrid"><!-- cards injected by home.js --></div>
+    <p class="listings__empty hidden" id="listingsEmpty">No boarding houses match your search. Try adjusting your filters.</p>
+  </section>
+
+  <!-- ============================================================
+       SIIT LOCATION FINDER — interactive map centered on SIIT
+  ============================================================ -->
+  <section class="siit-map-section" id="siit-map">
+    <div class="section-head reveal">
+      <span class="eyebrow eyebrow--dark">LOCATION FINDER</span>
+      <h2>Boarding Houses Near SIIT</h2>
+      <p class="section-head__sub">
+        Every listing plotted around Siargao Island Institute of Technology &mdash; closest properties first.
+      </p>
+    </div>
+
+    <div class="siit-map__filters reveal">
+      <button type="button" class="chip chip--active" data-radius="all">All Nearby</button>
+      <button type="button" class="chip" data-radius="near">Near SIIT</button>
+      <button type="button" class="chip" data-radius="200">Within 200 m</button>
+      <button type="button" class="chip" data-radius="210">Within 210 m</button>
+      <button type="button" class="chip" data-radius="250">Within 250 m</button>
+      <button type="button" class="chip" data-radius="350">Within 350 m</button>
+    </div>
+
+    <div class="siit-map__layout reveal">
+      <div class="siit-map__list" id="siitMapList"><!-- cards injected by home.js --></div>
+      <div class="siit-map__panel">
+        <div id="siitMap" class="siit-map__canvas" aria-label="Map of boarding houses near SIIT"></div>
+        <p class="siit-map__legend">
+          <span><span class="dot dot--school"></span>SIIT (reference point)</span>
+          <span><span class="dot dot--property"></span>Boarding house</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       HOW IT WORKS
+  ============================================================ -->
+  <section class="steps" id="how-it-works">
+    <div class="section-head reveal">
+      <span class="eyebrow eyebrow--dark">THE PROCESS</span>
+      <h2>How It Works</h2>
+    </div>
+
+    <div class="steps__grid">
+      <div class="step reveal">
+        <span class="step__num">01</span>
+        <h3>Search</h3>
+        <p>Search available boarding houses based on your preferences.</p>
+      </div>
+      <div class="step reveal">
+        <span class="step__num">02</span>
+        <h3>Compare</h3>
+        <p>Compare prices, room types, amenities, and locations.</p>
+      </div>
+      <div class="step reveal">
+        <span class="step__num">03</span>
+        <h3>Reserve</h3>
+        <p>Send a reservation request for your preferred room.</p>
+      </div>
+      <div class="step reveal">
+        <span class="step__num">04</span>
+        <h3>Connect</h3>
+        <p>Communicate with the landlord about your reservation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BENEFITS SECTION
+  ============================================================ -->
+  <section class="benefits">
+    <div class="section-head reveal">
+      <h2>MADE FOR STUDENTS AND LANDLORDS</h2>
+    </div>
+
+    <div class="benefits__grid">
+      <div class="benefits__col reveal">
+        <h3>For Tenants</h3>
+        <ul>
+          <li>Faster room search</li>
+          <li>Convenient online access</li>
+          <li>Complete room information</li>
+          <li>Easier price comparison</li>
+          <li>Reservation requests</li>
+          <li>Direct landlord communication</li>
+        </ul>
+      </div>
+      <div class="benefits__col reveal">
+        <h3>For Landlords</h3>
+        <ul>
+          <li>Greater property exposure</li>
+          <li>Easier listing management</li>
+          <li>Organized reservations</li>
+          <li>Reach more potential tenants</li>
+          <li>Easier vacancy updates</li>
+          <li>Better communication</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CALL TO ACTION
+  ============================================================ -->
+  <section class="cta reveal">
+    <div class="cta__box">
+      <h2>Ready to Find Your Next Home?</h2>
+      <p>Discover available boarding houses and make your rental search easier.</p>
+      <a href="#search" class="btn btn--lime btn--lg">Find a Boarding House <span aria-hidden="true">&rarr;</span></a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer class="footer" id="footer">
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <span class="footer__logo"><strong> BOARDING HOUSE RENTAL SYSTEM</strong></span>
+      <p>A smarter way to find and manage boarding houses.</p>
+    </div>
+
+    <div class="footer__col">
+      <h4>Navigation</h4>
+      <a href="#top">Home</a>
+      <a href="#listings">Boarding Houses</a>
+      <a href="#about">About</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#footer">Contact</a>
+    </div>
+
+    <div class="footer__col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">FAQs</a>
+      <a href="#">Terms &amp; Conditions</a>
+      <a href="#">Privacy Policy</a>
+    </div>
+
+    <div class="footer__col">
+      <h4>Contact</h4>
+      <p>Siargao Island Institute of Technology</p>
+      <p>Siargao, Philippines</p>
+    </div>
+  </div>
+
+  <div class="footer__bottom">
+    <p>&copy; <span id="year"></span> Boarding House Rental System. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<!-- ============================================================
+     "VIEW DETAILS" MODAL (filled dynamically by home.js)
+============================================================ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
+    <div id="modalBody"><!-- populated by JS --></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="../registerJS/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# Logs and rate-limit files must never be served to browsers.
+Require all denied

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Landlord Registration | Boarding House Rental System</title>
+  <meta name="description" content="Register as a verified boarding house owner and start managing your property listings." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#16A34A",
+            secondary: "#22C55E",
+            accent: "#10B981",
+            bgapp: "#F8FAFC",
+            cardbg: "#FFFFFF",
+            textmain: "#1E293B",
+          },
+          fontFamily: {
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+          },
+          borderRadius: { xl2: "20px", xl3: "28px" },
+          boxShadow: {
+            soft: "0 20px 50px -15px rgba(15, 23, 42, 0.12)",
+            glow: "0 8px 24px -6px rgba(22, 163, 74, 0.45)",
+          },
+          keyframes: {
+            fadeUp: {
+              "0%": { opacity: 0, transform: "translateY(16px)" },
+              "100%": { opacity: 1, transform: "translateY(0px)" },
+            },
+          },
+          animation: { fadeUp: "fadeUp 0.7s ease-out both" },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body class="font-body bg-bgapp text-textmain dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen">
+
+  <button id="darkModeToggle" type="button" aria-label="Toggle dark mode"
+    class="fixed top-4 right-4 z-50 grid place-items-center w-11 h-11 rounded-full bg-white/90 dark:bg-slate-800/90 shadow-soft backdrop-blur hover:scale-110 active:scale-95 transition-transform duration-200">
+    <svg id="iconSun" class="w-5 h-5 text-amber-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.42-1.42M7.05 7.05 5.64 5.64m12.73 0-1.42 1.42M7.05 16.95l-1.42 1.42M12 8a4 4 0 100 8 4 4 0 000-8z" />
+    </svg>
+    <svg id="iconMoon" class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 118.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  </button>
+
+  <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:bottom-6 sm:top-auto sm:right-6 z-50 flex flex-col gap-3 w-[90%] sm:w-auto max-w-sm" aria-live="polite"></div>
+
+  <main class="min-h-screen w-full flex items-start justify-center px-4 sm:px-6 py-10 sm:py-14">
+    <div class="w-full max-w-2xl animate-fadeUp">
+
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <img src="../Image/Logo BH'.png" alt="Boarding House Rental System logo"
+            class="logo w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover object-center shadow-md"
+            onerror="this.replaceWith(Object.assign(document.createElement('span'), { textContent: '🏠', className: 'text-2xl', ariaHidden: 'true' }))" />
+          <span class="font-display font-bold text-base sm:text-lg text-textmain dark:text-white leading-tight">Boarding House Rental System</span>
+        </div>
+        <a href="account-type.html" class="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-primary flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+          Change account type
+        </a>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-xl3 shadow-soft border border-slate-100 dark:border-slate-700 p-6 sm:p-9">
+        <div class="flex items-center gap-3 mb-1.5">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-lg" aria-hidden="true">🏢</span>
+          <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-textmain dark:text-white">Landlord Registration</h1>
+        </div>
+        <p class="text-slate-500 dark:text-slate-400 text-sm sm:text-base mb-8">
+          Register as a verified boarding house owner and start managing your property listings.
+        </p>
+
+        <div class="mb-8 flex items-start gap-2 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-xs sm:text-sm text-amber-800 dark:text-amber-300">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          <span>Landlord accounts are reviewed before activation. After submitting, your account status will be <strong>Pending Verification</strong> until an administrator approves it.</span>
+        </div>
+
+        <form id="landlordForm" class="space-y-9" novalidate>
+
+          <!-- ===================== SECTION 1 — PERSONAL INFORMATION ===================== -->
+          <fieldset>
+            <legend class="font-display font-bold text-sm uppercase tracking-wide text-primary mb-4">Section 1 — Personal Information</legend>
+
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label for="firstName" class="block text-sm font-semibold mb-1.5">First Name <span class="text-red-500">*</span></label>
+                <input type="text" id="firstName" name="firstName" autocomplete="given-name"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="firstNameError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+              <div>
+                <label for="middleName" class="block text-sm font-semibold mb-1.5">Middle Name <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input type="text" id="middleName" name="middleName" autocomplete="additional-name"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" />
+              </div>
+              <div>
+                <label for="lastName" class="block text-sm font-semibold mb-1.5">Last Name <span class="text-red-500">*</span></label>
+                <input type="text" id="lastName" name="lastName" autocomplete="family-name"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="lastNameError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <span class="block text-sm font-semibold mb-1.5">Gender <span class="text-red-500">*</span></span>
+              <div class="flex flex-wrap gap-4" role="radiogroup" aria-describedby="genderError">
+                <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="gender" value="male" class="w-4 h-4 text-primary focus:ring-primary/60" /> Male
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="gender" value="female" class="w-4 h-4 text-primary focus:ring-primary/60" /> Female
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="gender" value="prefer_not_to_say" class="w-4 h-4 text-primary focus:ring-primary/60" /> Prefer not to say
+                </label>
+              </div>
+              <p id="genderError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label for="dob" class="block text-sm font-semibold mb-1.5">Date of Birth <span class="text-red-500">*</span></label>
+                <input type="date" id="dob" name="dob"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="dobError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+              <div>
+                <label for="gmail" class="block text-sm font-semibold mb-1.5">Email Address <span class="text-red-500">*</span></label>
+                <input type="email" id="gmail" name="gmail" autocomplete="email" placeholder="example@gmail.com"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="gmailError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label for="contactNumber" class="block text-sm font-semibold mb-1.5">Contact Number <span class="text-red-500">*</span></label>
+                <input type="tel" id="contactNumber" name="contactNumber" inputmode="numeric" autocomplete="tel" placeholder="09XXXXXXXXX"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="contactNumberError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+              <div>
+                <label for="homeAddress" class="block text-sm font-semibold mb-1.5">Home Address <span class="text-red-500">*</span></label>
+                <input type="text" id="homeAddress" name="homeAddress" placeholder="House/unit no., street, barangay, city, province"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="homeAddressError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- ===================== SECTION 2 — ACCOUNT INFORMATION ===================== -->
+          <fieldset>
+            <legend class="font-display font-bold text-sm uppercase tracking-wide text-primary mb-4">Section 2 — Account Information</legend>
+
+            <div>
+              <label for="username" class="block text-sm font-semibold mb-1.5">Username <span class="text-red-500">*</span></label>
+              <input type="text" id="username" name="username" autocomplete="username" placeholder="e.g. delacruz_bh"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+              <p id="usernameError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label for="password" class="block text-sm font-semibold mb-1.5">Password <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input type="password" id="password" name="password" autocomplete="new-password" placeholder="Create a strong password"
+                    class="w-full pl-4 pr-11 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                  <button type="button" id="togglePassword" aria-label="Show password" aria-pressed="false"
+                    class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary transition-colors">
+                    <svg id="eyeOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    <svg id="eyeClosed" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.996 0 1.954-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>
+                  </button>
+                </div>
+                <p id="passwordError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+                <div id="strengthTrack" class="strength-track hidden mt-2.5"><div id="strengthFill" class="strength-fill"></div></div>
+                <p id="strengthLabel" class="text-xs font-medium text-slate-400 mt-1"></p>
+                <p class="text-xs text-slate-400 mt-1">Min 8 characters, uppercase, lowercase, and a number.</p>
+              </div>
+              <div>
+                <label for="confirmPassword" class="block text-sm font-semibold mb-1.5">Confirm Password <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" placeholder="Re-enter your password"
+                    class="w-full pl-4 pr-11 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                  <button type="button" id="toggleConfirmPassword" aria-label="Show password" aria-pressed="false"
+                    class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary transition-colors">
+                    <svg id="eyeOpenConfirm" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    <svg id="eyeClosedConfirm" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.996 0 1.954-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>
+                  </button>
+                </div>
+                <p id="confirmPasswordError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- ===================== SECTION 3 — BUSINESS INFORMATION ===================== -->
+          <fieldset>
+            <legend class="font-display font-bold text-sm uppercase tracking-wide text-primary mb-4">Section 3 — Business Information</legend>
+
+            <div>
+              <label for="propertyName" class="block text-sm font-semibold mb-1.5">Boarding House Name <span class="text-red-500">*</span></label>
+              <input type="text" id="propertyName" name="propertyName" placeholder="e.g. Dela Cruz Boarding House"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+              <p id="propertyNameError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <div class="mt-4">
+              <label for="businessAddress" class="block text-sm font-semibold mb-1.5">Business Address <span class="text-red-500">*</span></label>
+              <input type="text" id="businessAddress" name="businessAddress" placeholder="House/unit no. and street"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+              <p id="businessAddressError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label for="barangay" class="block text-sm font-semibold mb-1.5">Barangay <span class="text-red-500">*</span></label>
+                <input type="text" id="barangay" name="barangay"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="barangayError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+              <div>
+                <label for="municipality" class="block text-sm font-semibold mb-1.5">Municipality / City <span class="text-red-500">*</span></label>
+                <input type="text" id="municipality" name="municipality"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="municipalityError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+              <div>
+                <label for="province" class="block text-sm font-semibold mb-1.5">Province <span class="text-red-500">*</span></label>
+                <input type="text" id="province" name="province"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all" required />
+                <p id="provinceError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- ===================== SECTION 4 — IDENTITY VERIFICATION ===================== -->
+          <fieldset>
+            <legend class="font-display font-bold text-sm uppercase tracking-wide text-primary mb-4">Section 4 — Identity Verification</legend>
+
+            <!-- Required: Government ID -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold mb-1.5">Valid Government ID <span class="text-red-500">*</span></label>
+              <div id="govIdDropzone" tabindex="0" role="button" aria-label="Upload valid government ID" class="dropzone px-5 py-8 text-center">
+                <svg class="w-9 h-9 mx-auto text-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                <p class="text-sm font-semibold text-textmain dark:text-white">Drag & drop your ID here, or click to browse</p>
+                <p class="text-xs text-slate-400 mt-1">JPG, JPEG, PNG, or PDF — max 5MB</p>
+              </div>
+              <input type="file" id="govIdInput" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" class="hidden" />
+              <div id="govIdPreview" class="hidden"></div>
+              <p id="govIdFileError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <!-- Required: Selfie holding ID -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold mb-1.5">Selfie Holding Valid Government ID <span class="text-red-500">*</span></label>
+              <div id="selfieDropzone" tabindex="0" role="button" aria-label="Upload selfie holding your ID" class="dropzone px-5 py-8 text-center">
+                <svg class="w-9 h-9 mx-auto text-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                <p class="text-sm font-semibold text-textmain dark:text-white">Drag & drop your selfie here, or click to browse</p>
+                <p class="text-xs text-slate-400 mt-1">JPG, JPEG, PNG, or PDF — max 5MB</p>
+              </div>
+              <input type="file" id="selfieInput" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" class="hidden" />
+              <div id="selfiePreview" class="hidden"></div>
+              <p id="selfieFileError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <!-- Optional: Business Permit -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold mb-1.5">Business Permit <span class="text-slate-400 font-normal">(optional)</span></label>
+              <div id="permitDropzone" tabindex="0" role="button" aria-label="Upload business permit" class="dropzone px-5 py-8 text-center">
+                <svg class="w-9 h-9 mx-auto text-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                <p class="text-sm font-semibold text-textmain dark:text-white">Drag & drop, or click to browse</p>
+                <p class="text-xs text-slate-400 mt-1">JPG, JPEG, PNG, or PDF — max 5MB</p>
+              </div>
+              <input type="file" id="permitInput" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" class="hidden" />
+              <div id="permitPreview" class="hidden"></div>
+              <p id="permitFileError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+
+            <!-- Optional: Proof of Ownership -->
+            <div>
+              <label class="block text-sm font-semibold mb-1.5">Proof of Property Ownership <span class="text-slate-400 font-normal">(optional)</span></label>
+              <div id="ownershipDropzone" tabindex="0" role="button" aria-label="Upload proof of property ownership" class="dropzone px-5 py-8 text-center">
+                <svg class="w-9 h-9 mx-auto text-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                <p class="text-sm font-semibold text-textmain dark:text-white">Drag & drop, or click to browse</p>
+                <p class="text-xs text-slate-400 mt-1">JPG, JPEG, PNG, or PDF — max 5MB</p>
+              </div>
+              <input type="file" id="ownershipInput" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" class="hidden" />
+              <div id="ownershipPreview" class="hidden"></div>
+              <p id="ownershipFileError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            </div>
+          </fieldset>
+
+          <!-- Terms -->
+          <div class="space-y-2">
+            <label for="terms" class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" id="terms" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/60 cursor-pointer" required />
+              <span>I agree to the <a href="#" class="font-semibold text-primary hover:underline">Terms and Conditions</a>.</span>
+            </label>
+            <label for="privacy" class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" id="privacy" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/60 cursor-pointer" required />
+              <span>I agree to the <a href="#" class="font-semibold text-primary hover:underline">Privacy Policy</a>.</span>
+            </label>
+            <p id="termsError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button type="submit" id="registerBtn" disabled
+              class="flex-1 flex items-center justify-center gap-2 bg-primary text-white font-display font-bold text-sm sm:text-base py-3.5 rounded-full shadow-md hover:bg-accent hover:shadow-glow hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-md transition-all duration-200">
+              <span id="registerBtnText">Register</span>
+              <svg id="registerSpinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            </button>
+            <button type="reset" id="resetBtn"
+              class="sm:w-40 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 text-textmain dark:text-white font-display font-bold text-sm sm:text-base py-3.5 rounded-full border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 active:scale-95 transition-all duration-200">
+              Reset
+            </button>
+          </div>
+
+          <p class="text-center text-sm text-slate-500 dark:text-slate-400 pt-1">
+            Already have an account?
+            <a href="loginform.html" class="font-semibold text-primary hover:text-accent hover:underline transition-colors">Login</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../registerJS/app.js"></script>
+  <script src="../registerJS/register-landlord.js"></script>
+</body>
+</html>

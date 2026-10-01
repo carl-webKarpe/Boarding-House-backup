@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account | Boarding House Rental System</title>
+  <meta name="description" content="Create your Boarding House Rental System account and start browsing verified boarding houses near your school." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 (CSS only — loaded before Tailwind so existing Tailwind utility
+       classes and style.css keep visual priority; layout/design is unchanged) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Tailwind CSS (CDN, config extended below — no build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#16A34A",
+            secondary: "#22C55E",
+            accent: "#10B981",
+            bgapp: "#F8FAFC",
+            cardbg: "#FFFFFF",
+            textmain: "#1E293B",
+          },
+          fontFamily: {
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            xl2: "20px",
+            xl3: "28px",
+          },
+          boxShadow: {
+            soft: "0 20px 50px -15px rgba(15, 23, 42, 0.12)",
+            glow: "0 8px 24px -6px rgba(22, 163, 74, 0.45)",
+          },
+          keyframes: {
+            floaty: {
+              "0%, 100%": { transform: "translateY(0px)" },
+              "50%": { transform: "translateY(-12px)" },
+            },
+            fadeUp: {
+              "0%": { opacity: 0, transform: "translateY(16px)" },
+              "100%": { opacity: 1, transform: "translateY(0px)" },
+            },
+          },
+          animation: {
+            floaty: "floaty 5s ease-in-out infinite",
+            fadeUp: "fadeUp 0.7s ease-out both",
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body class="font-body bg-bgapp text-textmain dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen">
+
+  <!-- Dark mode toggle -->
+  <button
+    id="darkModeToggle"
+    type="button"
+    aria-label="Toggle dark mode"
+    class="fixed top-4 right-4 z-50 grid place-items-center w-11 h-11 rounded-full bg-white/90 dark:bg-slate-800/90 shadow-soft backdrop-blur hover:scale-110 active:scale-95 transition-transform duration-200"
+  >
+    <svg id="iconSun" class="w-5 h-5 text-amber-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.42-1.42M7.05 7.05 5.64 5.64m12.73 0-1.42 1.42M7.05 16.95l-1.42 1.42M12 8a4 4 0 100 8 4 4 0 000-8z" />
+    </svg>
+    <svg id="iconMoon" class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 118.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  </button>
+
+  <!-- Toast container -->
+  <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:bottom-6 sm:top-auto sm:right-6 z-50 flex flex-col gap-3 w-[90%] sm:w-auto max-w-sm" aria-live="polite"></div>
+
+  <main class="min-h-screen w-full flex flex-col lg:flex-row bg-bgapp text-textmain dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
+
+    <!-- ============ WELCOME PANEL (top on mobile, right on desktop) ============ -->
+    <section
+      class="order-1 lg:order-2 relative overflow-hidden w-full lg:w-1/2 min-h-[280px] sm:min-h-[340px] flex items-center justify-center px-6 py-10 sm:py-14 lg:p-12"
+      style="background: linear-gradient(135deg, #16A34A, #10B981);"
+      aria-label="Welcome section"
+    >
+      <!-- decorative blurred shapes -->
+      <div class="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-white/10 blur-2xl"></div>
+      <div class="pointer-events-none absolute bottom-0 left-0 w-72 h-72 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-1/3 left-6 w-24 h-24 rounded-full bg-white/10 blur-xl hidden lg:block"></div>
+
+      <div class="relative z-10 max-w-md text-center text-white animate-fadeUp">
+
+        <!-- Signature illustration: verified account badge + key handover -->
+        <div class="mx-auto mb-6 sm:mb-8 w-36 h-36 sm:w-48 sm:h-48 animate-floaty" aria-hidden="true">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-xl">
+            <circle cx="120" cy="120" r="108" fill="rgba(255,255,255,0.12)" />
+            <circle cx="120" cy="120" r="86" fill="rgba(255,255,255,0.10)" />
+            <!-- shield -->
+            <path d="M120 44 L172 64 V116 C172 156 150 182 120 196 C90 182 68 156 68 116 V64 Z" fill="#FFFFFF" />
+            <path d="M120 44 L172 64 V116 C172 156 150 182 120 196 Z" fill="#DCFCE7" fill-opacity="0.55" />
+            <!-- checkmark -->
+            <path d="M100 118 L114 132 L142 100" fill="none" stroke="#16A34A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- floating key -->
+            <g transform="translate(150,150) rotate(20)">
+              <circle cx="0" cy="0" r="11" fill="none" stroke="#FFFFFF" stroke-width="6" />
+              <rect x="8" y="-3" width="26" height="6" rx="2" fill="#FFFFFF" />
+              <rect x="26" y="3" width="5" height="8" rx="1.5" fill="#FFFFFF" />
+              <rect x="34" y="3" width="5" height="10" rx="1.5" fill="#FFFFFF" />
+            </g>
+          </svg>
+        </div>
+
+        <h1 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl mb-3 tracking-tight">
+          Start Your Search Today
+        </h1>
+        <p class="text-white/90 text-sm sm:text-base leading-relaxed mb-6 lg:mb-8">
+          Create your free account and unlock verified boarding houses near your school in minutes.
+        </p>
+
+        <!-- how it works: a genuine sequence, so numbering is meaningful here -->
+        <ol class="text-left mx-auto max-w-xs space-y-3 mb-7 lg:mb-9">
+          <li class="flex items-start gap-3 bg-white/12 border border-white/20 rounded-2xl px-4 py-2.5 backdrop-blur-sm">
+            <span class="flex-shrink-0 grid place-items-center w-6 h-6 rounded-full bg-white text-primary font-display font-bold text-xs">1</span>
+            <span class="text-sm text-white/95">Create your free account</span>
+          </li>
+          <li class="flex items-start gap-3 bg-white/12 border border-white/20 rounded-2xl px-4 py-2.5 backdrop-blur-sm">
+            <span class="flex-shrink-0 grid place-items-center w-6 h-6 rounded-full bg-white text-primary font-display font-bold text-xs">2</span>
+            <span class="text-sm text-white/95">Browse verified boarding houses</span>
+          </li>
+          <li class="flex items-start gap-3 bg-white/12 border border-white/20 rounded-2xl px-4 py-2.5 backdrop-blur-sm">
+            <span class="flex-shrink-0 grid place-items-center w-6 h-6 rounded-full bg-white text-primary font-display font-bold text-xs">3</span>
+            <span class="text-sm text-white/95">Book safely and move in with confidence</span>
+          </li>
+        </ol>
+
+        <a
+          href="loginform.html"
+          class="inline-flex items-center justify-center gap-2 bg-white text-primary font-display font-bold text-sm sm:text-base px-7 py-3 rounded-full shadow-lg hover:shadow-glow hover:scale-[1.03] active:scale-95 transition-all duration-200"
+        >
+          Already have an account? Login
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ SIGNUP FORM PANEL ============ -->
+    <section class="order-2 lg:order-1 w-full lg:w-1/2 flex items-center justify-center px-5 sm:px-10 py-10 sm:py-14 lg:py-16 bg-bgapp dark:bg-slate-900 transition-colors duration-300 theme-panel">
+      <div class="w-full max-w-md animate-fadeUp theme-card" style="animation-delay: 0.08s;">
+
+        <!-- Logo -->
+        <div class="flex items-center gap-2 mb-8">
+          <img
+            src="../Image/Logo BH'.png"
+            alt="Boarding House Rental System logo"
+            class="logo w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover object-center shadow-md"
+            onerror="this.replaceWith(Object.assign(document.createElement('span'), { textContent: '🏠', className: 'text-3xl', ariaHidden: 'true' }))"
+          />
+          <span class="font-display font-bold text-lg sm:text-xl text-textmain dark:text-white leading-tight">
+            Boarding House<br class="hidden sm:block" /> Rental System
+          </span>
+        </div>
+
+        <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-textmain dark:text-white mb-2">Create Your Account</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm sm:text-base mb-8">
+          Join our Boarding House today.
+        </p>
+
+        <form id="signupForm" class="space-y-5" novalidate>
+
+          <!-- Gmail Address -->
+          <div>
+            <label for="gmail" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Gmail address</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0-.83.67-1.5 1.5-1.5h16.5c.83 0 1.5.67 1.5 1.5v10.5c0 .83-.67 1.5-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V6.75Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m3 7 9 6 9-6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="gmail"
+                name="gmail"
+                autocomplete="email"
+                placeholder="example@gmail.com"
+                aria-describedby="gmailError"
+                class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+            </div>
+            <p id="gmailError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+          </div>
+
+          <!-- Username -->
+          <div>
+            <label for="username" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Username</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                autocomplete="username"
+                placeholder="e.g. juan_delacruz"
+                aria-describedby="usernameError usernameStatus"
+                class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+            </div>
+            <p id="usernameError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+            <p id="usernameStatus" class="text-xs text-slate-400 mt-1.5" aria-live="polite"></p>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <label for="password" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a1.5 1.5 0 0 0 1.5-1.5v-8.25a1.5 1.5 0 0 0-1.5-1.5H6.75a1.5 1.5 0 0 0-1.5 1.5v8.25a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="new-password"
+                placeholder="Create a strong password"
+                aria-describedby="passwordError"
+                class="w-full pl-11 pr-11 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+              <button
+                type="button"
+                id="togglePassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary transition-colors"
+              >
+                <svg id="eyeOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                <svg id="eyeClosed" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.996 0 1.954-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              </button>
+            </div>
+            <p id="passwordError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+
+            <!-- Strength meter -->
+            <div id="strengthTrack" class="strength-track hidden mt-2.5">
+              <div id="strengthFill" class="strength-fill"></div>
+            </div>
+            <p id="strengthLabel" class="text-xs font-medium text-slate-400 mt-1"></p>
+            <p class="text-xs text-slate-400 mt-1">
+              Min 8 characters, with uppercase, lowercase, a number, and a special character.
+            </p>
+          </div>
+
+          <!-- Confirm Password -->
+          <div>
+            <label for="confirmPassword" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Confirm password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a1.5 1.5 0 0 0 1.5-1.5v-8.25a1.5 1.5 0 0 0-1.5-1.5H6.75a1.5 1.5 0 0 0-1.5 1.5v8.25a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                autocomplete="new-password"
+                placeholder="Re-enter your password"
+                aria-describedby="confirmPasswordError"
+                class="w-full pl-11 pr-11 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+              <button
+                type="button"
+                id="toggleConfirmPassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary transition-colors"
+              >
+                <svg id="eyeOpenConfirm" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                <svg id="eyeClosedConfirm" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.996 0 1.954-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              </button>
+            </div>
+            <p id="confirmPasswordError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+          </div>
+
+          <!-- Current Address / Location -->
+          <div>
+            <label for="address" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Current address / location</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
+              </span>
+              <select
+                id="address"
+                name="address"
+                aria-describedby="addressError"
+                class="w-full pl-11 pr-10 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200 appearance-none cursor-pointer"
+                required
+              >
+                <option value="" disabled selected>Select your current address / location</option>
+                <option value="Barangay Catangnan, General Luna, Siargao Island, Surigao del Norte">Barangay Catangnan, General Luna, Siargao Island, Surigao del Norte</option>
+                <option value="Barangay Poblacion, General Luna, Siargao Island, Surigao del Norte">Barangay Poblacion, General Luna, Siargao Island, Surigao del Norte</option>
+                <option value="Barangay Tourism Road, General Luna, Siargao Island, Surigao del Norte">Barangay Tourism Road, General Luna, Siargao Island, Surigao del Norte</option>
+                <option value="Barangay Union, General Luna, Siargao Island, Surigao del Norte">Barangay Union, General Luna, Siargao Island, Surigao del Norte</option>
+                <option value="Barangay Sabang, Del Carmen, Siargao Island, Surigao del Norte">Barangay Sabang, Del Carmen, Siargao Island, Surigao del Norte</option>
+                <option value="Poblacion, Dapa, Surigao del Norte">Poblacion, Dapa, Surigao del Norte</option>
+                <option value="other">Other (not listed)</option>
+              </select>
+              <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 pointer-events-none" aria-hidden="true">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </span>
+            </div>
+            <p id="addressError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+
+            <!-- Shown only when "Other (not listed)" is selected above -->
+            <div id="addressOtherWrap" class="hidden mt-2.5">
+              <input
+                type="text"
+                id="addressOther"
+                name="addressOther"
+                placeholder="Type your barangay / municipality / province"
+                aria-describedby="addressError"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+              />
+            </div>
+          </div>
+
+          <!-- Contact Number -->
+          <div>
+            <label for="contactNumber" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Contact number</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h1.5a2.25 2.25 0 0 0 2.25-2.25v-1.372a1.5 1.5 0 0 0-1.146-1.457l-3.7-.925a1.5 1.5 0 0 0-1.529.522l-.622.83a1.5 1.5 0 0 1-1.66.507 11.29 11.29 0 0 1-5.632-5.632 1.5 1.5 0 0 1 .507-1.66l.83-.622a1.5 1.5 0 0 0 .522-1.529l-.925-3.7A1.5 1.5 0 0 0 5.622 3H4.25a2 2 0 0 0-2 2v1.75Z" />
+                </svg>
+              </span>
+              <input
+                type="tel"
+                id="contactNumber"
+                name="contactNumber"
+                autocomplete="tel"
+                placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                aria-describedby="contactNumberError"
+                class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+            </div>
+            <p id="contactNumberError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+          </div>
+
+          <!-- Terms -->
+          <div>
+            <label for="terms" class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                id="terms"
+                class="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/60 cursor-pointer"
+                required
+              />
+              <span>I agree to the <a href="#" class="font-semibold text-primary hover:underline">Terms and Conditions</a>.</span>
+            </label>
+            <p id="termsError" class="hidden text-xs text-red-500 mt-1.5" role="alert"></p>
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            id="registerBtn"
+            disabled
+            class="w-full flex items-center justify-center gap-2 bg-primary text-white font-display font-bold text-sm sm:text-base py-3.5 rounded-full shadow-md hover:bg-accent hover:shadow-glow hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-md transition-all duration-200"
+          >
+            <span id="registerBtnText">Register</span>
+            <svg id="registerSpinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </button>
+
+          <!-- Bottom link -->
+          <p class="text-center text-sm text-slate-500 dark:text-slate-400 pt-1">
+            Already have an account?
+            <a href="loginform.html" class="font-semibold text-primary hover:text-accent hover:underline transition-colors">Login</a>
+          </p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bootstrap 5 JS bundle (Popper included) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="../registerJS/app.js"></script>
+  <script src="../registerJS/signup.js"></script>
+</body>
+</html>

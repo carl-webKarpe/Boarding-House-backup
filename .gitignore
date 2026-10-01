@@ -1,0 +1,4 @@
+# Runtime data (logs, rate-limit counters) and user uploads
+storage/*
+!storage/.htaccess
+uploads/

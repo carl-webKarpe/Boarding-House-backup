@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | Boarding House Rental System</title>
+  <meta name="description" content="Login to the Boarding House Rental System — find affordable and verified boarding houses near your school." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 (CSS only — loaded before Tailwind so existing Tailwind utility
+       classes and style.css keep visual priority; layout/design is unchanged) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Tailwind CSS (CDN, config extended below) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#16A34A",
+            secondary: "#22C55E",
+            accent: "#10B981",
+            bgapp: "#F8FAFC",
+            cardbg: "#FFFFFF",
+            textmain: "#1E293B",
+          },
+          fontFamily: {
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            xl2: "20px",
+            xl3: "28px",
+          },
+          boxShadow: {
+            soft: "0 20px 50px -15px rgba(15, 23, 42, 0.12)",
+            glow: "0 8px 24px -6px rgba(22, 163, 74, 0.45)",
+          },
+          keyframes: {
+            floaty: {
+              "0%, 100%": { transform: "translateY(0px)" },
+              "50%": { transform: "translateY(-12px)" },
+            },
+            fadeUp: {
+              "0%": { opacity: 0, transform: "translateY(16px)" },
+              "100%": { opacity: 1, transform: "translateY(0px)" },
+            },
+            popIn: {
+              "0%": { opacity: 0, transform: "scale(0.92) translateY(8px)" },
+              "100%": { opacity: 1, transform: "scale(1) translateY(0)" },
+            },
+          },
+          animation: {
+            floaty: "floaty 5s ease-in-out infinite",
+            fadeUp: "fadeUp 0.7s ease-out both",
+            popIn: "popIn 0.35s ease-out both",
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="../style.css" />
+</head>
+
+<body class="font-body bg-bgapp text-textmain dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen">
+
+  <!-- Dark mode toggle -->
+  <button
+    id="darkModeToggle"
+    type="button"
+    aria-label="Toggle dark mode"
+    class="fixed top-4 right-4 z-50 grid place-items-center w-11 h-11 rounded-full bg-white/90 dark:bg-slate-800/90 shadow-soft backdrop-blur hover:scale-110 active:scale-95 transition-transform duration-200"
+  >
+    <svg id="iconSun" class="w-5 h-5 text-amber-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.42-1.42M7.05 7.05 5.64 5.64m12.73 0-1.42 1.42M7.05 16.95l-1.42 1.42M12 8a4 4 0 100 8 4 4 0 000-8z" />
+    </svg>
+    <svg id="iconMoon" class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 118.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  </button>
+
+  <!-- Toast container -->
+  <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:bottom-6 sm:top-auto sm:right-6 z-50 flex flex-col gap-3 w-[90%] sm:w-auto max-w-sm" aria-live="polite"></div>
+
+  <main class="min-h-screen w-full flex flex-col lg:flex-row">
+
+    <!-- ============ WELCOME PANEL (top on mobile, right on desktop) ============ -->
+    <section
+      class="order-1 lg:order-2 relative overflow-hidden w-full lg:w-1/2 min-h-[280px] sm:min-h-[340px] lg:min-h-screen flex items-center justify-center px-6 py-10 sm:py-14 lg:p-12"
+      style="background: linear-gradient(135deg, #16A34A, #10B981);"
+      aria-label="Welcome section"
+    >
+      <!-- decorative blurred shapes -->
+      <div class="pointer-events-none absolute -top-16 -left-10 w-56 h-56 rounded-full bg-white/10 blur-2xl"></div>
+      <div class="pointer-events-none absolute bottom-0 right-0 w-72 h-72 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="pointer-events-none absolute top-1/3 right-6 w-24 h-24 rounded-full bg-white/10 blur-xl hidden lg:block"></div>
+
+      <div class="relative z-10 max-w-md text-center text-white animate-fadeUp">
+
+        <!-- Signature illustration: house + key + student pin -->
+        <div class="mx-auto mb-6 sm:mb-8 w-40 h-40 sm:w-52 sm:h-52 lg:w-64 lg:h-64 animate-floaty" aria-hidden="true">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-xl">
+            <circle cx="120" cy="120" r="108" fill="rgba(255,255,255,0.12)" />
+            <circle cx="120" cy="120" r="86" fill="rgba(255,255,255,0.10)" />
+            <!-- ground -->
+            <ellipse cx="120" cy="196" rx="70" ry="8" fill="rgba(255,255,255,0.15)" />
+            <!-- house body -->
+            <rect x="66" y="118" width="108" height="70" rx="10" fill="#FFFFFF" fill-opacity="0.95" />
+            <path d="M56 128 L120 76 L184 128 L172 128 L120 92 L68 128 Z" fill="#FFFFFF" />
+            <!-- roof ridge highlight -->
+            <path d="M120 76 L184 128 L172 128 L120 92 Z" fill="#DCFCE7" fill-opacity="0.6" />
+            <!-- door as a keyhole (rental key metaphor) -->
+            <rect x="104" y="150" width="32" height="38" rx="8" fill="#16A34A" />
+            <circle cx="120" cy="163" r="6" fill="#FFFFFF" />
+            <rect x="117.5" y="167" width="5" height="9" rx="2" fill="#FFFFFF" />
+            <!-- windows -->
+            <rect x="76" y="134" width="18" height="18" rx="4" fill="#BBF7D0" />
+            <rect x="146" y="134" width="18" height="18" rx="4" fill="#BBF7D0" />
+            <!-- student figure walking toward house -->
+            <g transform="translate(30,150)">
+              <circle cx="12" cy="10" r="9" fill="#FFFFFF" />
+              <rect x="4" y="20" width="16" height="26" rx="7" fill="#DCFCE7" />
+              <rect x="-2" y="24" width="10" height="16" rx="5" fill="#FFFFFF" transform="rotate(-18 -2 24)" />
+              <!-- backpack -->
+              <rect x="14" y="22" width="10" height="14" rx="4" fill="#16A34A" />
+            </g>
+            <!-- location pin above house -->
+            <g transform="translate(120,50)">
+              <path d="M0 0C-9 0 -16 7 -16 16C-16 28 0 46 0 46C0 46 16 28 16 16C16 7 9 0 0 0Z" fill="#FFFFFF" />
+              <circle cx="0" cy="16" r="6" fill="#16A34A" />
+            </g>
+          </svg>
+        </div>
+
+        <h1 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl mb-3 tracking-tight">
+          Welcome Back!
+        </h1>
+        <p class="text-white/90 text-sm sm:text-base leading-relaxed mb-6 lg:mb-8">
+          Find affordable and comfortable boarding houses near your school with just a few clicks.
+        </p>
+
+        <!-- feature chips -->
+        <ul class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-7 lg:mb-10">
+          <li class="flex items-center gap-1.5 bg-white/15 border border-white/25 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M12 3l7.5 3.5v5c0 5-3.2 8.7-7.5 9.5-4.3-.8-7.5-4.5-7.5-9.5v-5L12 3z"/></svg>
+            Safe
+          </li>
+          <li class="flex items-center gap-1.5 bg-white/15 border border-white/25 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-9c0-1.7 1.8-3 4-3s4 1.3 4 3-1.8 3-4 3-4 1.3-4 3 1.8 3 4 3 4-1.3 4-3"/></svg>
+            Affordable
+          </li>
+          <li class="flex items-center gap-1.5 bg-white/15 border border-white/25 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+            Verified
+          </li>
+          <li class="flex items-center gap-1.5 bg-white/15 border border-white/25 text-white text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 6h15a.75.75 0 0 1 .75.75V19.5a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75V6.75A.75.75 0 0 1 4.5 6z"/></svg>
+            Easy Booking
+          </li>
+        </ul>
+
+        <a
+          href="account-type.html"
+          class="inline-flex items-center justify-center gap-2 bg-white text-primary font-display font-bold text-sm sm:text-base px-7 py-3 rounded-full shadow-lg hover:shadow-glow hover:scale-[1.03] active:scale-95 transition-all duration-200"
+        >
+          Create Account
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ LOGIN FORM PANEL ============ -->
+    <section class="order-2 lg:order-1 w-full lg:w-1/2 flex items-center justify-center px-5 sm:px-10 py-10 sm:py-14 lg:py-12">
+      <div class="w-full max-w-md animate-fadeUp" style="animation-delay: 0.08s;">
+
+        <!-- Logo -->
+        <a href="index.html" aria-label="Return to the Boarding House Rental System landing page" class="flex items-center gap-2 mb-8 w-fit cursor-pointer">
+          <img
+            src="../Image/Logo BH'.png"
+            alt="Boarding House Rental System logo"
+            class="logo w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover object-center shadow-md"
+            onerror="this.replaceWith(Object.assign(document.createElement('span'), { textContent: '🏠', className: 'text-3xl', ariaHidden: 'true' }))"
+          />
+          <span class="font-display font-bold text-lg sm:text-xl text-textmain dark:text-white leading-tight">
+            Boarding House<br class="hidden sm:block" /> Rental System
+          </span>
+        </a>
+
+        <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-textmain dark:text-white mb-2">Login</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm sm:text-base mb-8">
+          Welcome back! Please login to continue.
+        </p>
+
+        <form id="loginForm" class="space-y-5" novalidate>
+
+          <!-- Email -->
+          <div>
+            <label for="email" class="block text-sm font-semibold text-textmain dark:text-slate-200 mb-1.5">Email address</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0-.83.67-1.5 1.5-1.5h16.5c.83 0 1.5.67 1.5 1.5v10.5c0 .83-.67 1.5-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V6.75Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m3 7 9 6 9-6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                aria-describedby="emailError"
+                class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+            </div>
+            <p id="emailError" class="hidden text-xs text-red-500 mt-1.5 items-center gap-1" role="alert"></p>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="password" class="block text-sm font-semibold text-textmain dark:text-slate-200">Password</label>
+              <a href="../php/forgot-password.php" class="text-xs font-medium text-primary hover:text-accent hover:underline transition-colors">Forgot Password?</a>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a1.5 1.5 0 0 0 1.5-1.5v-8.25a1.5 1.5 0 0 0-1.5-1.5H6.75a1.5 1.5 0 0 0-1.5 1.5v8.25a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                placeholder="Enter your password"
+                aria-describedby="passwordError"
+                class="w-full pl-11 pr-11 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white bg-white text-sm sm:text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary transition-all duration-200"
+                required
+              />
+              <button
+                type="button"
+                id="togglePassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary transition-colors"
+              >
+                <svg id="eyeOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                <svg id="eyeClosed" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.996 0 1.954-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              </button>
+            </div>
+            <p id="passwordError" class="hidden text-xs text-red-500 mt-1.5 items-center gap-1" role="alert"></p>
+          </div>
+
+          <!-- Remember me -->
+          <div class="flex items-center justify-between pt-1">
+            <label for="rememberMe" class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/60 cursor-pointer"
+              />
+              Remember me
+            </label>
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            id="loginBtn"
+            disabled
+            class="w-full flex items-center justify-center gap-2 bg-primary text-white font-display font-bold text-sm sm:text-base py-3.5 rounded-full shadow-md hover:bg-accent hover:shadow-glow hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-md transition-all duration-200"
+          >
+            <span id="loginBtnText">Login</span>
+            <svg id="loginSpinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </button>
+
+          <!-- Divider -->
+          <div class="flex items-center gap-3 py-1">
+            <span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>
+            <span class="text-xs font-medium text-slate-400 uppercase tracking-wide">or</span>
+            <span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>
+          </div>
+
+          <!-- Social logins -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              class="flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 text-sm font-semibold text-textmain dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+            >
+              <svg class="w-4.5 h-4.5" width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.3 35 24 35c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.5 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5c-7.6 0-14.1 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 43c5.3 0 10.2-2 13.8-5.3l-6.4-5.4C29.3 34 26.8 35 24 35c-5.2 0-9.6-3.6-11.2-8.5l-6.5 5C9.8 38.6 16.4 43 24 43z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l6.4 5.4C39.5 37 44 31.4 44 24c0-1.4-.1-2.7-.4-3.5z"/></svg>
+              Google
+            </button>
+            <button
+              type="button"
+              class="flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 text-sm font-semibold text-textmain dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+            >
+              <svg class="w-4.5 h-4.5" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94Z"/></svg>
+              Facebook
+            </button>
+          </div>
+
+          <!-- Bottom link -->
+          <p class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
+            Don't have an account?
+            <a href="account-type.html" class="font-semibold text-primary hover:text-accent hover:underline transition-colors">Create Account</a>
+          </p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bootstrap 5 JS bundle (Popper included) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="../registerJS/app.js"></script>
+</body>
+</html>
