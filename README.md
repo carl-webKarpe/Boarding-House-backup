@@ -124,6 +124,17 @@ All relationships use foreign keys. Bookings use `ON DELETE RESTRICT`, so rental
      `php setup/create-admin.php you@example.com "YourPass@123" First Last`.
 6. Open `http://localhost/BHsystem/html/loginform.html`. Administrators land on the dashboard at `http://localhost/BHsystem/admin/`.
 
+### Run without XAMPP (MySQL Server + MySQL Workbench only)
+
+You still need PHP to run the website, but not the XAMPP Control Panel.
+
+1. Make sure your MySQL Server is running and you imported `database/schema.sql` and `database/seed.sql` in MySQL Workbench.
+2. Copy `security/config.local.example.php` to `security/config.local.php` and set `BH_DB_PASS` to your MySQL root password.
+3. Double-click **`start-server.bat`**. It finds PHP (on your PATH, or `C:\xampp\php\php.exe`), starts PHP's built-in web server and opens the login page.
+4. Use `http://localhost:8000/html/loginform.html` (admin dashboard: `http://localhost:8000/admin/`). Keep the black window open; close it to stop.
+
+`router.php` blocks the private folders (`storage`, `security`, `database`) because PHP's built-in server ignores `.htaccess` files.
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |
