@@ -1,7 +1,7 @@
 /* ==========================================================================
    Boarding House Rental System — home.js
-   Vanilla JS only. No framework, no backend calls — this file drives the
-   front-end prototype behavior for the public Home Page.
+   Vanilla JS only. Drives the public Home Page; boarding house listings
+   and statistics are loaded from the database through api/listings.php.
    ========================================================================== */
 
 "use strict";
@@ -20,87 +20,32 @@ const SIIT = {
 };
 
 /* ---------------------------------------------------------------------- *
- * Sample listings data — replace with real data from the database later.
- * NOTE ON COORDINATES: these are placeholder sample coordinates chosen to
- * sit a realistic distance from SIIT for this prototype. In production,
- * `coordinates` should come from the property's saved location record —
- * set once by the landlord/admin via a map location-picker when the
- * listing is created — not hard-coded here.
+ * Listings come from the database (api/listings.php). Only boarding houses
+ * that an administrator approved in the Admin Dashboard are shown, so
+ * adding, editing or approving a listing there updates this page.
  * ---------------------------------------------------------------------- */
-const LISTINGS = [
-  {
-    id: "greenview",
-    name: "Green View Boarding House",
-    location: "Purok 2, Dapa, Siargao",
-    price: 2500,
-    roomType: "Single Room",
-    availability: "Available",
-    rooms: 6,
-    amenities: ["Wi-Fi", "Electricity", "Water", "Study Area"],
-    coordinates: [9.7608, 126.0490],
-    img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQP2gJlXIUqunx_oRPYPnk3T67yT5JCJlJDHbZc9K22Jg&s=10",
-  },
-  {
-    id: "islandhome",
-    name: "Island Home Boarding House",
-    location: "Brgy. 5, Dapa, Siargao",
-    price: 2500,
-    roomType: "Shared Room",
-    availability: "Available",
-    rooms: 5,
-    amenities: ["Wi-Fi", "Kitchen", "Water", "Laundry"],
-    coordinates: [9.7602, 126.0495],
-    img: "../Image/image2.jpg",
-  },
-  {
-    id: "studenthaven",
-    name: "Student Haven",
-    location: "Brgy. 9, Dapa, Siargao",
-    price: 5000,
-    roomType: "Single Room",
-    availability: "Coming Soon",
-    rooms: 4,
-    amenities: ["Wi-Fi", "Private Bathroom", "Study Area"],
-    coordinates: [9.7612, 126.0493],
-    img: "../Image/haven.jpg",
-  },
-  {
-    id: "northview",
-    name: "Northview Student Residences",
-    location: "Brgy. Osme\u00f1a, Dapa, Siargao",
-    price: 1800,
-    roomType: "Shared Room",
-    availability: "Available",
-    rooms: 8,
-    amenities: ["Wi-Fi", "Kitchen", "Study Area", "Security Guard"],
-    coordinates: [9.7618, 126.0500],
-    img: "../Image/image4.jpg",
-  },
-  {
-    id: "sunrise",
-    name: "Boarding House Sunrise",
-    location: "Brgy. 3, Dapa, Siargao",
-    price: 1300,
-    roomType: "Bedspace",
-    availability: "Available",
-    rooms: 12,
-    amenities: ["Wi-Fi", "Shared Kitchen", "Electric Fan"],
-    coordinates: [9.7598, 126.0492],
-    img: "../Image/images.jpg",
-  },
-  {
-    id: "seaside",
-    name: "Seaside Boarders",
-    location: "Brgy. Union, Dapa, Siargao",
-    price: 1200,
-    roomType: "Bedspace",
-    availability: "Available",
-    rooms: 10,
-    amenities: ["Wi-Fi", "Shared Kitchen", "Water"],
-    coordinates: [9.7605, 126.0500],
-    img: "../Image/image3.jpg",
-  },
-];
+let LISTINGS = [];
+
+const FALLBACK_IMAGES = ["../Image/image2.jpg", "../Image/haven.jpg", "../Image/image4.jpg", "../Image/images.jpg", "../Image/image3.jpg", "../Image/BGINFO.jpg"];
+
+/** Escapes text typed by landlords/admins before it goes into HTML. */
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+async function loadListings() {
+  const response = await fetch("../api/listings.php", { headers: { Accept: "application/json" } });
+  const json = await response.json();
+  if (!response.ok || !json.success) throw new Error(json.message || "Could not load listings.");
+
+  LISTINGS = json.data.map((item, i) => ({
+    ...item,
+    id: String(item.id),
+    img: item.img || FALLBACK_IMAGES[i % FALLBACK_IMAGES.length],
+    distanceToSIIT: item.coordinates ? distanceMeters(SIIT.coordinates, item.coordinates) : Infinity,
+  }));
+  return json.stats || {};
+}
 
 /* ---------------------------------------------------------------------- *
  * Distance helpers — every "X m / X km from SIIT" figure on the site is
@@ -119,21 +64,18 @@ function distanceMeters(a, b) {
 }
 
 function formatDistance(meters) {
+  if (!Number.isFinite(meters)) return "Location not set";
   if (meters < 1000) return `${Math.round(meters / 10) * 10} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
 function directionsUrl(item) {
+  if (!item.coordinates) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || item.location)}`;
   // No origin specified on purpose: Google Maps automatically routes from
   // the visitor's current location (after a permission prompt) whether
   // opened in the browser or the Google Maps app.
   return `https://www.google.com/maps/dir/?api=1&destination=${item.coordinates[0]},${item.coordinates[1]}&travelmode=driving`;
 }
-
-// Pre-compute each listing's distance from SIIT once, up front.
-LISTINGS.forEach((item) => {
-  item.distanceToSIIT = distanceMeters(SIIT.coordinates, item.coordinates);
-});
 
 function byDistance(a, b) {
   return a.distanceToSIIT - b.distanceToSIIT;
@@ -143,25 +85,30 @@ function byDistance(a, b) {
  * Listings rendering + filtering (Featured Listings preview grid)
  * ---------------------------------------------------------------------- */
 function currency(amount) {
-  return "\u20B1" + amount.toLocaleString("en-PH");
+  return "\u20B1" + Number(amount).toLocaleString("en-PH", { maximumFractionDigits: 0 });
+}
+
+function distanceLabel(item) {
+  return Number.isFinite(item.distanceToSIIT) ? `${formatDistance(item.distanceToSIIT)} from SIIT` : "Location not set";
 }
 
 function listingCardHTML(item) {
   const badgeClass = item.availability === "Available" ? "" : " listing-card__badge--soon";
+  const roomsText = item.rooms ? `${item.rooms} room${item.rooms === 1 ? "" : "s"} available` : "No rooms open right now";
   return `
-    <article class="listing-card reveal is-visible" data-id="${item.id}">
+    <article class="listing-card reveal is-visible" data-id="${esc(item.id)}">
       <div class="listing-card__img-wrap">
-        <img class="listing-card__img" src="${item.img}" alt="${item.name}" loading="lazy" />
-        <span class="listing-card__badge${badgeClass}">${item.availability}</span>
+        <img class="listing-card__img" src="${esc(item.img)}" alt="${esc(item.name)}" loading="lazy" />
+        <span class="listing-card__badge${badgeClass}">${esc(item.availability)}</span>
       </div>
       <div class="listing-card__body">
-        <h3>${item.name}</h3>
-        <span class="listing-card__loc">${item.location}</span>
-        <span class="listing-card__price">${currency(item.price)} <span>/ month</span></span>
-        <span class="listing-card__meta">${item.roomType} &middot; ${item.rooms} rooms available</span>
-        <span class="listing-card__distance">\u{1F4CD} ${formatDistance(item.distanceToSIIT)} from SIIT</span>
-        <span class="listing-card__amenities">${item.amenities.join(" \u2022 ")}</span>
-        <button type="button" class="listing-card__cta" data-view="${item.id}">View Details</button>
+        <h3>${esc(item.name)}</h3>
+        <span class="listing-card__loc">${esc(item.location)}</span>
+        <span class="listing-card__price">${item.price === item.max_price ? "" : "from "}${currency(item.price)} <span>/ month</span></span>
+        <span class="listing-card__meta">${esc(item.roomType)} &middot; ${roomsText}</span>
+        <span class="listing-card__distance">\u{1F4CD} ${esc(distanceLabel(item))}</span>
+        <span class="listing-card__amenities">${item.amenities.map(esc).join(" \u2022 ")}</span>
+        <button type="button" class="listing-card__cta" data-view="${esc(item.id)}">View Details</button>
       </div>
     </article>
   `;
@@ -188,9 +135,9 @@ function applyFilters() {
   const availability = document.getElementById("fAvailability").value;
 
   const filtered = LISTINGS.filter((item) => {
-    if (location && !item.location.toLowerCase().includes(location)) return false;
+    if (location && !`${item.name} ${item.address}`.toLowerCase().includes(location)) return false;
     if (!isNaN(maxPrice) && maxPrice > 0 && item.price > maxPrice) return false;
-    if (roomType && item.roomType !== roomType) return false;
+    if (roomType && !item.roomTypes.includes(roomType)) return false;
     if (availability && item.availability !== availability) return false;
     return true;
   }).sort(byDistance);
@@ -216,48 +163,68 @@ function openListingModal(id) {
   const body = document.getElementById("modalBody");
 
   const badgeClass = item.availability === "Available" ? "" : " listing-card__badge--soon";
-  const amenitiesHTML = item.amenities.map((a) => `<li>${a}</li>`).join("");
+  const amenitiesHTML = item.amenities.map((a) => `<li>${esc(a)}</li>`).join("");
+  const roomsHTML = item.roomList
+    .map((r) => `<li>Room ${esc(r.room_number)} &middot; ${esc(r.type)} &middot; ${currency(r.price)} &middot; ${
+      r.status === "maintenance" ? "Under maintenance" : r.open > 0 ? `${r.open} slot${r.open === 1 ? "" : "s"} open` : "Full"}</li>`)
+    .join("");
 
   body.innerHTML = `
     <div class="modal__media">
-      <img src="${item.img}" alt="${item.name}" />
-      <span class="listing-card__badge${badgeClass}">${item.availability}</span>
+      <img src="${esc(item.img)}" alt="${esc(item.name)}" />
+      <span class="listing-card__badge${badgeClass}">${esc(item.availability)}</span>
     </div>
     <div class="modal__content">
-      <h3 id="modalTitle">${item.name}</h3>
-      <span class="listing-card__loc">${item.location}</span>
+      <h3 id="modalTitle">${esc(item.name)}</h3>
+      <span class="listing-card__loc">${esc(item.address)}</span>
+      ${item.description ? `<p class="modal__description">${esc(item.description)}</p>` : ""}
 
       <div class="modal__location">
         <div class="modal__location-heading">
           <div>
             <h4>Distance from SIIT</h4>
-            <p>${formatDistance(item.distanceToSIIT)} from Siargao Island Institute of Technology</p>
+            <p>${Number.isFinite(item.distanceToSIIT) ? `${formatDistance(item.distanceToSIIT)} from Siargao Island Institute of Technology` : "The landlord has not pinned this location yet."}</p>
           </div>
-          <a href="${directionsUrl(item)}" target="_blank" rel="noopener" class="modal__map-link">Get Directions</a>
+          <a href="${esc(directionsUrl(item))}" target="_blank" rel="noopener" class="modal__map-link">Get Directions</a>
         </div>
-        <div id="roomMap" class="room-map" aria-label="Map showing ${item.name} near SIIT"></div>
+        ${item.coordinates ? `<div id="roomMap" class="room-map" aria-label="Map showing ${esc(item.name)} near SIIT"></div>` : ""}
       </div>
 
       <div class="modal__price-row">
-        <span class="listing-card__price">${currency(item.price)} <span>/ month</span></span>
-        <span class="modal__roomtype">${item.roomType}</span>
+        <span class="listing-card__price">${item.price === item.max_price ? "" : "from "}${currency(item.price)} <span>/ month</span></span>
+        <span class="modal__roomtype">${item.roomTypes.map(esc).join(", ")}</span>
       </div>
 
       <div class="modal__details-grid">
         <div class="modal__detail">
           <span class="modal__detail-label">Rooms Open</span>
-          <span class="modal__detail-value">${item.rooms}</span>
+          <span class="modal__detail-value">${item.rooms} of ${item.totalRooms}</span>
         </div>
         <div class="modal__detail">
           <span class="modal__detail-label">Availability</span>
-          <span class="modal__detail-value">${item.availability}</span>
+          <span class="modal__detail-value">${esc(item.availability)}</span>
+        </div>
+        <div class="modal__detail">
+          <span class="modal__detail-label">Landlord</span>
+          <span class="modal__detail-value">${esc(item.landlord)}</span>
+        </div>
+        <div class="modal__detail">
+          <span class="modal__detail-label">Contact</span>
+          <span class="modal__detail-value">${esc(item.contact || "—")}</span>
         </div>
       </div>
 
       <div class="modal__amenities">
         <h4>Amenities</h4>
-        <ul class="modal__amenity-list">${amenitiesHTML}</ul>
+        <ul class="modal__amenity-list">${amenitiesHTML || "<li>Not listed</li>"}</ul>
       </div>
+
+      <div class="modal__amenities">
+        <h4>Rooms</h4>
+        <ul class="modal__amenity-list">${roomsHTML}</ul>
+      </div>
+
+      ${item.rules ? `<div class="modal__amenities"><h4>House Rules</h4><p>${esc(item.rules)}</p></div>` : ""}
 
       <a href="../html/loginform.html" class="btn btn--dark modal__cta">Reserve This Room</a>
     </div>
@@ -266,7 +233,7 @@ function openListingModal(id) {
   overlay.classList.add("is-open");
   document.body.style.overflow = "hidden";
 
-  if (typeof L !== "undefined") {
+  if (typeof L !== "undefined" && item.coordinates) {
     const map = L.map("roomMap", { scrollWheelZoom: false });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -274,7 +241,7 @@ function openListingModal(id) {
     }).addTo(map);
     L.marker(item.coordinates, { icon: propertyIcon() })
       .addTo(map)
-      .bindPopup(`<strong>${item.name}</strong><br>${item.location}`)
+      .bindPopup(`<strong>${esc(item.name)}</strong><br>${esc(item.location)}`)
       .openPopup();
     L.marker(SIIT.coordinates, { icon: siitIcon(), zIndexOffset: 1000 })
       .addTo(map)
@@ -305,6 +272,7 @@ const SIIT_FILTERS = {
   near: 2000,
   500: 500,
   200: 200,
+  210: 210,
   250: 250,
   350: 350,
   all: Infinity,
@@ -336,23 +304,23 @@ function propertyIcon() {
 
 function visibleSiitListings() {
   const maxDist = SIIT_FILTERS[siitActiveFilter];
-  return LISTINGS.filter((item) => item.distanceToSIIT <= maxDist).sort(byDistance);
+  return LISTINGS.filter((item) => item.coordinates && item.distanceToSIIT <= maxDist).sort(byDistance);
 }
 
 function siitCardHTML(item) {
   return `
-    <article class="siit-card" data-id="${item.id}">
-      <img class="siit-card__img" src="${item.img}" alt="${item.name}" loading="lazy" />
+    <article class="siit-card" data-id="${esc(item.id)}">
+      <img class="siit-card__img" src="${esc(item.img)}" alt="${esc(item.name)}" loading="lazy" />
       <div class="siit-card__body">
         <div class="siit-card__top">
-          <h3>${item.name}</h3>
+          <h3>${esc(item.name)}</h3>
           <span class="siit-card__price">${currency(item.price)}<span>/mo</span></span>
         </div>
-        <span class="siit-card__loc">${item.location}</span>
-        <span class="siit-card__distance">\u{1F4CD} ${formatDistance(item.distanceToSIIT)} from SIIT &middot; ${item.roomType}</span>
+        <span class="siit-card__loc">${esc(item.location)}</span>
+        <span class="siit-card__distance">\u{1F4CD} ${esc(distanceLabel(item))} &middot; ${esc(item.roomType)}</span>
         <div class="siit-card__actions">
-          <button type="button" class="btn btn--outline-dark btn--sm" data-map-focus="${item.id}">View on Map</button>
-          <a href="${directionsUrl(item)}" target="_blank" rel="noopener" class="btn btn--dark btn--sm">Get Directions</a>
+          <button type="button" class="btn btn--outline-dark btn--sm" data-map-focus="${esc(item.id)}">View on Map</button>
+          <a href="${esc(directionsUrl(item))}" target="_blank" rel="noopener" class="btn btn--dark btn--sm">Get Directions</a>
         </div>
       </div>
     </article>
@@ -392,14 +360,14 @@ function focusSiitMarker(id) {
 function popupHTML(item) {
   return `
     <div class="siit-popup">
-      <strong>${item.name}</strong>
-      <span>${item.location}</span>
-      <span>${formatDistance(item.distanceToSIIT)} from SIIT</span>
-      <span>${currency(item.price)} / month &middot; ${item.roomType}</span>
+      <strong>${esc(item.name)}</strong>
+      <span>${esc(item.location)}</span>
+      <span>${esc(distanceLabel(item))}</span>
+      <span>${currency(item.price)} / month &middot; ${esc(item.roomType)}</span>
       <span>${item.rooms} rooms available</span>
       <div class="siit-popup__actions">
-        <button type="button" class="btn btn--dark btn--sm" onclick="openListingModal('${item.id}')">View Details</button>
-        <a href="${directionsUrl(item)}" target="_blank" rel="noopener" class="btn btn--outline-dark btn--sm">Directions</a>
+        <button type="button" class="btn btn--dark btn--sm" data-popup-view="${esc(item.id)}">View Details</button>
+        <a href="${esc(directionsUrl(item))}" target="_blank" rel="noopener" class="btn btn--outline-dark btn--sm">Directions</a>
       </div>
     </div>
   `;
@@ -452,7 +420,7 @@ function initSiitMap() {
     )
     .openPopup();
 
-  LISTINGS.forEach((item) => {
+  LISTINGS.filter((item) => item.coordinates).forEach((item) => {
     const marker = L.marker(item.coordinates, { icon: propertyIcon() }).bindPopup(popupHTML(item));
     marker.on("click", () => markActiveSiitCard(item.id));
     siitMarkers[item.id] = marker;
@@ -460,6 +428,12 @@ function initSiitMap() {
 
   document.querySelectorAll(".chip[data-radius]").forEach((chip) => {
     chip.addEventListener("click", () => setSiitFilter(chip.getAttribute("data-radius")));
+  });
+
+  // "View Details" buttons inside map popups.
+  mapEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-popup-view]");
+    if (btn) openListingModal(btn.getAttribute("data-popup-view"));
   });
 
   renderSiitList();
@@ -573,16 +547,35 @@ function initStatCounters() {
   stats.forEach((el) => statsObserver.observe(el));
 }
 
+function setStat(id, value) {
+  const el = document.getElementById(id);
+  if (el && value !== undefined) el.setAttribute("data-count", String(value));
+}
+
 /* ---------------------------------------------------------------------- *
  * INIT
  * ---------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
   initNavbar();
   initScrollReveal();
-  initStatCounters();
 
-  renderListings([...LISTINGS].sort(byDistance));
-  initSiitMap();
+  loadListings()
+    .then((stats) => {
+      setStat("statHouses", stats.houses);
+      setStat("statRooms", stats.available_rooms);
+      setStat("statTenants", stats.tenants);
+      const heroRooms = document.getElementById("heroRooms");
+      if (heroRooms && stats.available_rooms !== undefined) heroRooms.textContent = stats.available_rooms;
+      renderListings([...LISTINGS].sort(byDistance));
+      initSiitMap();
+      initStatCounters();
+    })
+    .catch(() => {
+      const empty = document.getElementById("listingsEmpty");
+      empty.textContent = "Listings could not be loaded right now. Please make sure the server and database are running, then refresh.";
+      empty.classList.remove("hidden");
+      initStatCounters();
+    });
 
   document.getElementById("searchForm").addEventListener("submit", (e) => {
     e.preventDefault();

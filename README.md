@@ -135,6 +135,10 @@ You still need PHP to run the website, but not the XAMPP Control Panel.
 
 `router.php` blocks the private folders (`storage`, `security`, `database`) because PHP's built-in server ignores `.htaccess` files.
 
+### Landing page = live database records
+
+`http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses**, **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** in the Admin Dashboard (and that have at least one room). Add, edit, approve, reject or deactivate a listing in the admin, refresh the landing page, and the change is there. Set a listing's latitude/longitude in the admin so it appears on the SIIT map.
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |

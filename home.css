@@ -807,3 +807,6 @@ main > section { padding: 100px 24px; }
   .navbar__logo { width: 34px; height: 34px; }
   .navbar__burger { padding: 4px; }
 }
+/* Listing details loaded from the database */
+.modal__description { margin: 0.75rem 0 1.25rem; line-height: 1.6; opacity: 0.85; }
+.modal__amenities p { margin: 0.25rem 0 0; line-height: 1.6; white-space: pre-line; }

@@ -40,10 +40,11 @@ if errorlevel 1 (
 echo.
 echo  Boarding House Rental System is running.
 echo.
-echo    Website : http://localhost:8000/html/loginform.html
-echo    Admin   : http://localhost:8000/admin/
+echo    Home page : http://localhost:8000/
+echo    Login     : http://localhost:8000/html/loginform.html
+echo    Admin     : http://localhost:8000/admin/
 echo.
 echo  Keep this window open. Press Ctrl+C to stop.
 echo.
-start "" "http://localhost:8000/html/loginform.html"
+start "" "http://localhost:8000/"
 "%PHP_EXE%" -S localhost:8000 router.php
