@@ -1,0 +1,3 @@
+# The setup page refuses to run once an administrator exists, but you can
+# also delete this folder after creating your first admin account.
+Options -Indexes

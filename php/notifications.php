@@ -4,7 +4,7 @@ require_once __DIR__ . '/../security/session.php';
 require_once __DIR__ . '/../security/sanitize.php';
 
 applySecurityHeaders();
-startSecureSession();
+requireLogin();
 
 $userName = sanitizeForOutput($_SESSION['username'] ?? 'Student');
 $role = sanitizeForOutput($_SESSION['role'] ?? 'tenant');
@@ -73,7 +73,7 @@ $role = sanitizeForOutput($_SESSION['role'] ?? 'tenant');
         <div id="profileDropdown" class="absolute right-0 top-full mt-2 hidden w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-soft dark:border-slate-700 dark:bg-slate-900">
           <a href="dashboard.php" class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Profile</a>
           <a href="dashboard.php" class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Settings</a>
-          <a href="logout.php" class="block rounded-xl px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">Logout</a>
+          <form method="post" action="logout.php"><?php echo csrfInput(); ?><button type="submit" class="block w-full rounded-xl px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">Logout</button></form>
         </div>
       </div>
     </div>

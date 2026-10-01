@@ -2,34 +2,22 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../security/security_headers.php';
-require_once __DIR__ . '/../security/config.php';
-require_once __DIR__ . '/../security/session.php';
+require_once __DIR__ . '/_common.php';
 require_once __DIR__ . '/../security/auth.php';
 
-applySecurityHeaders();
-startSecureSession();
-header('Content-Type: application/json');
+apiBootstrap();
+requireMethod('POST');
+requireCsrf();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
-    exit;
-}
-
-$input = $_POST;
-$csrfToken = $input['csrf_token'] ?? $_POST['csrf_token'] ?? '';
-if (!verifyCsrfToken((string) $csrfToken)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
-    exit;
-}
-
-$result = registerUser([
-    'role' => 'landlord',
-    'email' => (string) ($input['gmail'] ?? $input['email'] ?? ''),
-    'username' => (string) ($input['username'] ?? ''),
-    'password' => (string) ($input['password'] ?? ''),
-    'confirmPassword' => (string) ($input['confirmPassword'] ?? ''),
+$result = registerAccount(ROLE_LANDLORD, $_POST, [
+    'government_id' => $_FILES['govIdFile'] ?? null,
+    'selfie' => $_FILES['selfieFile'] ?? null,
+    'business_permit' => $_FILES['permitFile'] ?? null,
+    'proof_of_ownership' => $_FILES['ownershipFile'] ?? null,
 ]);
 
-echo json_encode($result);
+if (!$result['success']) {
+    jsonError($result['message'], $result['status'] ?? 400, $result['errors'] ?? []);
+}
+
+jsonResponse(null, $result['message'], 201);

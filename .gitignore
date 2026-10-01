@@ -1,4 +1,11 @@
-# Runtime data (logs, rate-limit counters) and user uploads
+# Runtime data (logs, rate-limit counters, private documents)
 storage/*
 !storage/.htaccess
-uploads/
+
+# User uploads (listing photos)
+uploads/*
+!uploads/.htaccess
+
+# Local configuration with database passwords
+security/config.local.php
+node_modules/

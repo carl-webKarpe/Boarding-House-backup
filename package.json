@@ -1,0 +1,15 @@
+{
+  "name": "boarding-house-rental-system",
+  "private": true,
+  "description": "Build tools for the admin dashboard assets. Not needed to run the system on XAMPP - the built files are committed.",
+  "scripts": {
+    "build:admin": "npm run build:admin-css && npm run copy:chartjs",
+    "build:admin-css": "tailwindcss -c admin/tailwind.config.js -i admin/assets/css/tailwind.src.css -o admin/assets/css/tailwind.css --minify",
+    "watch:admin-css": "tailwindcss -c admin/tailwind.config.js -i admin/assets/css/tailwind.src.css -o admin/assets/css/tailwind.css --watch",
+    "copy:chartjs": "node -e \"require('fs').copyFileSync('node_modules/chart.js/dist/chart.umd.js', 'admin/assets/vendor/chart.umd.min.js')\""
+  },
+  "devDependencies": {
+    "chart.js": "4.4.4",
+    "tailwindcss": "3.4.17"
+  }
+}

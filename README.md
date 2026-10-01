@@ -1,216 +1,223 @@
 # Boarding House Rental System
 
-A PHP and MySQL web application for helping students and other tenants discover boarding houses, review room information, and access a secure account dashboard. The project also provides landlord registration endpoints and a role-protected administration area for managing users.
+A web-based system that helps students — especially new students and those from other towns — find safe, affordable boarding houses near their school. Landlords manage their listings, and administrators oversee the whole platform from an admin dashboard.
 
-## Project Overview
+- **Frontend:** HTML5, Tailwind CSS, JavaScript (ES modules)
+- **Backend / API:** PHP 8 (PDO) — JSON REST endpoints
+- **Database:** MySQL (created and managed with MySQL Workbench) — MariaDB/XAMPP also works
 
-The system is designed around three groups of users:
+---
 
-- **Tenants** browse available rooms, search by location, school, price, and room type, view amenities and landlord information, and access their account dashboard.
-- **Landlords** can use the landlord registration flow as the foundation for publishing and managing rental listings.
-- **Administrators** use the protected admin area to manage users and oversee system operations.
-
-The current project is a working foundation and user-interface prototype. Authentication and user accounts use MySQL, while the room catalog currently comes from the sample records in `php/room-data.php`. Booking, messaging, and listing-management persistence can be connected to database tables as the next development phase.
-
-## Main Features
-
-### Tenant experience
-
-- Responsive room-discovery interface in `php/browse-rooms.php`.
-- Search and filtering by location, school, budget, and room type.
-- Room details including rent, deposit, advance payment, capacity, room size, availability, amenities, house rules, nearby places, reviews, and landlord information.
-- Featured listings, recommended rooms, saved/favorite UI, messages UI, notifications, and booking navigation.
-- Light and dark display modes.
-- Authenticated user dashboard and logout flow.
-
-### Accounts and administration
-
-- Tenant and landlord registration pages.
-- Login and password reset flow.
-- Secure session handling with role information.
-- Roles for `super_admin`, `admin`, `staff`, and regular `user` accounts.
-- Admin-only access to `admin/adminpanel.php` and user management in `admin/users.php`.
-- Audit-log and failed-login tracking support.
-
-### Security foundation
-
-- Password hashing through PHP password APIs.
-- CSRF token validation for authentication and registration requests.
-- Prepared database queries through the security/database layer.
-- Output sanitization helpers to reduce XSS risk.
-- Secure session configuration and session-based authentication.
-- Security headers.
-- Login rate limiting and temporary account lockout after repeated failures.
-- Password reset tokens with an expiration period.
-- Upload-security helpers for future listing media uploads.
-
-## Design and User Interface
-
-The interface uses a clean, student-focused rental marketplace style:
-
-- **Visual direction:** emerald green is used for trust, availability, and primary actions; slate neutrals provide readable content surfaces.
-- **Typography:** Poppins is used for display headings and Inter for interface text on the room-browsing experience.
-- **Layout:** responsive navigation, filter/search controls, listing cards, room detail sections, dashboards, and admin panels.
-- **Responsive behavior:** layouts adapt for phones, tablets, and desktop screens using Tailwind utility classes, Bootstrap components, and local CSS.
-- **Accessibility basics:** semantic headings, form labels, responsive controls, focus-friendly buttons, and live-region support for notifications.
-- **Interaction design:** search filters, profile dropdowns, favorite controls, room detail views, notifications, toast messages, and dark-mode switching.
-
-The public browsing experience is primarily styled in `style.css` and uses Tailwind CSS from its CDN. The dashboard and admin pages use Bootstrap 5 from its CDN with page-specific styles.
-
-## Technology Stack
-
-- **Backend:** PHP 8+ recommended
-- **Database:** MySQL or MariaDB
-- **Frontend:** HTML5, CSS3, JavaScript
-- **UI:** Tailwind CSS CDN and Bootstrap 5 CDN
-- **Fonts:** Google Fonts, Poppins and Inter
-- **Local server:** XAMPP Apache and MySQL
-- **Data format:** JSON requests and responses for authentication APIs
-
-## Directory Structure
+## System architecture
 
 ```text
-BHsystem/
-├── admin/                  Protected administrator pages
-├── api/                    JSON endpoints for login, registration, rooms, and CSRF
-├── html/                   Public HTML pages and registration forms
-├── Image/                  Local room and background images
-├── php/                    Dashboard, browsing, notifications, and account pages
-├── registerJS/             Registration and signup JavaScript
-├── security/               Authentication, sessions, validation, roles, and headers
-├── storage/                Runtime logs and rate-limit data
-├── home.css                Home-page styles
-├── style.css               Room-browsing styles
-└── sql.setup.sql           Database schema and initial administrator account
+                 USER (student / landlord / administrator)
+                                  │
+                                  ▼
+        ┌─────────────────────────────────────────────────┐
+        │  FRONTEND UI  (html/, php/ pages, admin/)        │
+        │  HTML + Tailwind CSS + JavaScript                │
+        │  admin/assets/js/api.js = the only file that     │
+        │  calls the backend                               │
+        └───────────────────────┬─────────────────────────┘
+                                │  fetch() — JSON, session cookie, CSRF token
+                                ▼
+        ┌─────────────────────────────────────────────────┐
+        │  BACKEND / API  (api/, api/admin/)               │
+        │  Authentication · Authorization (roles)          │
+        │  Validation · Business rules · Activity logging  │
+        │  security/ = shared security layer               │
+        └───────────────────────┬─────────────────────────┘
+                                │  PDO prepared statements
+                                ▼
+        ┌─────────────────────────────────────────────────┐
+        │  MySQL DATABASE  (bhsystem)                      │
+        └─────────────────────────────────────────────────┘
+                                ▲
+                                │  used by the developer / DBA only
+        ┌─────────────────────────────────────────────────┐
+        │  MySQL Workbench — create, inspect, back up the  │
+        │  database. It is NOT part of the running app.    │
+        └─────────────────────────────────────────────────┘
 ```
 
-## Database Design
+## Main users and roles
 
-The SQL setup creates the `bhsystem` database with these current tables:
+| Role | Can do |
+| --- | --- |
+| **Tenant / Student** (`tenant`) | Register with student/government ID, log in, browse and search rooms |
+| **Landlord** (`landlord`) | Register with government ID, selfie and property details; first listing waits for approval |
+| **Administrator** (`admin`) | Everything in the Admin Dashboard: users, landlords, listings, rooms, bookings, reports |
+| **Super Admin** (`super_admin`) | Everything an admin can do, plus create and manage other administrators |
+
+Role-based access control is enforced on the server for every page and API call. A tenant or landlord who opens `/admin` is redirected to their own home page; the admin API answers `401` (not logged in) or `403` (not an administrator).
+
+---
+
+## Admin Dashboard (`admin/`)
+
+| Section | Features |
+| --- | --- |
+| **Dashboard** | 6 statistic cards (tenants, landlords, boarding houses, available rooms, occupied rooms, pending approvals) with "this month" growth; registration chart; booking, room and listing statistics; approval queue; recent-activity timeline |
+| **Users** | All accounts with tabs (tenants / landlords / administrators), search, status filter, sorting, pagination. View (profile, uploaded IDs, listings, bookings), add, edit, reset password, disable/enable, delete |
+| **Landlords** | Landlord list with business name, number of boarding houses and verification status; verify or reject landlords after reviewing their documents |
+| **Boarding Houses** | Name, owner, location, rooms available, price range, status, date added. View, add, edit, approve, reject (with a reason sent to the landlord), deactivate, delete, upload/remove photos |
+| **Rooms** | Room number, boarding house, type, price, capacity/occupancy, amenities, status. Add, edit, mark under maintenance, delete. Amenity catalogue manager |
+| **Bookings** | Booking ID, tenant, boarding house, room, date, status (Pending / Approved / Cancelled / Completed). Approving fills a room slot automatically; cancelling or completing frees it. CSV export |
+| **Reports** | Registered users, active landlords, boarding houses, available/occupied rooms, booking activity — charts for 6 or 12 months, tables by city, room type and occupancy, CSV export and print/PDF |
+| **Notifications** | New users, new landlords, listings that need approval; mark read/unread, delete, notification preferences |
+| **Activity Log** | Searchable audit trail of logins, registrations, approvals and every admin change, with CSV export |
+| **Settings** | Admin profile, password change, system settings (name, support contacts, registration on/off, listing approval), notification preferences |
+| **Logout** | Confirmation modal, then a CSRF-protected POST logout |
+
+The layout is responsive: a collapsible sidebar on desktop, a slide-in drawer on phones and tablets, and tables that turn into cards on small screens. Every chart has hover tooltips and a "Show data table" view for accessibility.
+
+---
+
+## Database design
+
+Run `database/schema.sql` to create every table, then optionally `database/seed.sql` for realistic demo data.
+
+```text
+users ──1:1── landlords ──1:N── boarding_houses ──1:N── rooms ──N:M── amenities
+  │                                    │                   │       (room_amenities)
+  │                                    └──1:N── boarding_house_images
+  ├──1:N── bookings ──N:1── rooms
+  ├──1:N── verification_documents
+  ├──1:N── notifications
+  ├──1:N── activity_logs
+  └──1:N── password_resets
+settings (key/value system configuration)
+```
 
 | Table | Purpose |
 | --- | --- |
-| `users` | Accounts, roles, password hashes, account status, and login lockout values |
-| `audit_logs` | Security and administrative activity records |
-| `password_resets` | Expiring password-reset tokens |
+| `users` | Every account: username, email, password hash, role, name, contact number, address, gender, birth date, status (active/pending/disabled), lockout fields |
+| `landlords` | Landlord business name/address and verification status (one row per landlord user) |
+| `verification_documents` | IDs, selfies and permits uploaded at registration (files kept privately in `storage/documents`) |
+| `boarding_houses` | Listing name, description, address, city, coordinates, nearest school, contacts, house rules, status (pending/approved/rejected/inactive) |
+| `boarding_house_images` | Listing photos (`uploads/listings`) |
+| `rooms` | Room number, type, price, deposit, capacity, current occupants, status (available/occupied/maintenance) |
+| `amenities`, `room_amenities` | Amenity catalogue and which rooms have which amenities |
+| `bookings` | Tenant, room, booking date, move-in date, status (pending/approved/cancelled/completed) |
+| `notifications` | Messages for administrators (`audience = admin`) or a single user |
+| `activity_logs` | Who did what and when — feeds Recent Activities and the Activity Log |
+| `password_resets` | Hashed, expiring password-reset tokens |
+| `settings` | System settings editable in Admin › Settings |
 
-Room listings are currently represented by the PHP array in `php/room-data.php`. A production release should add tables for properties, rooms, amenities, bookings, favorites, messages, reviews, and payments.
+All relationships use foreign keys. Bookings use `ON DELETE RESTRICT`, so rental history cannot be lost by accident — the admin is asked to disable the account or listing instead.
 
-## Local Installation with XAMPP
+---
 
-### Requirements
+## Installation (XAMPP + MySQL Workbench)
 
-- XAMPP with Apache and MySQL enabled
-- PHP 8.0 or newer recommended
-- A modern web browser
-
-### Setup
-
-1. Copy the project folder into the XAMPP web root:
-
-   ```text
-   C:\xampp\htdocs\BHsystem
-   ```
-
+1. Copy the project to `C:\xampp\htdocs\BHsystem`.
 2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
+3. In **MySQL Workbench**, connect to `127.0.0.1:3306` (user `root`), then **File › Run SQL Script…**:
+   1. `database/schema.sql` — creates the `bhsystem` database and tables.
+   2. `database/seed.sql` — *optional* demo data (≈90 users, 20 boarding houses, 98 rooms, 169 bookings).
+   (phpMyAdmin › Import works too.)
+4. If your MySQL user/password is not `root` with an empty password, copy `security/config.local.example.php` to `security/config.local.php` and edit it. This file is ignored by Git, so passwords never get committed. Environment variables (`BH_DB_HOST`, `BH_DB_USER`, `BH_DB_PASS`, …) also work.
+5. Create your administrator:
+   - **With demo data:** log in as `admin@bhrental.local` / `Admin@12345`.
+   - **Without demo data:** open `http://localhost/BHsystem/setup/create-admin.php` (works only on localhost and only while no admin exists), or run
+     `php setup/create-admin.php you@example.com "YourPass@123" First Last`.
+6. Open `http://localhost/BHsystem/html/loginform.html`. Administrators land on the dashboard at `http://localhost/BHsystem/admin/`.
 
-3. Open phpMyAdmin at `http://localhost/phpmyadmin`.
+### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
-4. Import `sql.setup.sql`, or run it from the MySQL console. This creates the database and required account tables.
+| Role | Email | Password |
+| --- | --- | --- |
+| Super Admin | `admin@bhrental.local` | `Admin@12345` |
+| Landlord | `landlord1@bhrental.local` | `Demo@12345` |
+| Tenant | `tenant1@bhrental.local` | `Demo@12345` |
 
-5. Check the local database settings in `security/config.php`:
+Seed dates are relative to the day you import it, so the charts always show recent activity. Re-import it any time to reset the demo.
 
-   ```php
-   BH_DB_HOST = 127.0.0.1
-   BH_DB_NAME = bhsystem
-   BH_DB_USER = root
-   BH_DB_PASS = ''
-   ```
+### Rebuilding the admin CSS (only when you change Tailwind classes)
 
-   Change these values when using a non-default MySQL installation.
+The compiled files are committed, so XAMPP needs no Node.js. If you add new Tailwind classes to `admin/`:
 
-6. Open the application:
+```bash
+npm install
+npm run build:admin      # or: npm run watch:admin-css while editing
+```
 
-   ```text
-   http://localhost/BHsystem/html/index.html
-   ```
+Tailwind and Chart.js are served locally from `admin/assets/`, so the admin dashboard also works without an internet connection.
 
-   The main room browser is available at:
+---
 
-   ```text
-   http://localhost/BHsystem/php/browse-rooms.php
-   ```
-
-## Initial Administrator Account
-
-The SQL file inserts the initial super administrator record:
+## Project structure
 
 ```text
-Username: superadmin
-Email:    superadmin@example.com
-Role:     super_admin
+BHsystem/
+├── admin/
+│   ├── index.php                 Admin dashboard shell (role-protected)
+│   ├── assets/css/               admin.css + compiled tailwind.css
+│   ├── assets/vendor/            Chart.js (local copy)
+│   └── assets/js/
+│       ├── api.js                API client — the only file that calls the backend
+│       ├── ui.js                 Safe HTML templates, modals, toasts, tables, forms
+│       ├── charts.js             Chart helpers (colour-blind-safe palette)
+│       ├── app.js                Router, sidebar, search, notifications, logout
+│       └── pages/                dashboard, users, boarding-houses, rooms, bookings,
+│                                 reports, notifications, activity, settings
+├── api/
+│   ├── _common.php               JSON responses, validation helpers, error handling
+│   ├── login.php, csrf.php, register-tenant.php, register-landlord.php, rooms.php
+│   └── admin/                    Admin REST API (see below)
+├── database/schema.sql, seed.sql
+├── security/                     config, database, session, CSRF, roles, validation,
+│                                 rate limiting, uploads, activity log, settings
+├── setup/create-admin.php        First administrator setup
+├── html/, php/, registerJS/      Public pages, registration and tenant pages
+├── storage/                      Logs, rate-limit data, private documents (not web-accessible)
+└── uploads/                      Listing photos (scripts can never run here)
 ```
 
-The SQL file contains a password hash rather than a plain-text password. Set or replace the administrator password through a controlled local setup process before using the application in a real environment. Never publish default credentials or production secrets in the repository.
+## Admin REST API (`api/admin/`)
 
-## Important Routes
+Every endpoint requires an administrator session. `POST`, `PUT` and `DELETE` also require the `X-CSRF-Token` header. Responses look like `{ "success": true, "data": …, "meta": {pagination} }` or `{ "success": false, "message": "…", "errors": { field: message } }` with the matching HTTP status.
 
-| Route | Description |
-| --- | --- |
-| `html/index.html` | Public entry page |
-| `html/loginform.html` | Login form |
-| `html/signup.html` | Account type selection and signup entry |
-| `html/register-tenant.html` | Tenant registration form |
-| `html/register-landlord.html` | Landlord registration form |
-| `php/browse-rooms.php` | Room discovery and details |
-| `php/dashboard.php` | Authenticated dashboard |
-| `php/notifications.php` | User notifications page |
-| `admin/adminpanel.php` | Admin dashboard |
-| `admin/users.php` | Admin user management |
-| `api/login.php` | JSON login endpoint |
-| `api/register.php` | JSON registration endpoint |
-| `api/rooms.php` | Room data endpoint |
-| `php/logout.php` | Session logout |
+| Endpoint | Methods | Notes |
+| --- | --- | --- |
+| `stats.php` | GET | Dashboard cards, chart data, recent activity, approval queue |
+| `users.php` | GET, POST, PUT, DELETE | `?role=tenant\|landlord\|admin&status=&verification=&q=&page=&sort=&order=`; `?id=` for details |
+| `boarding-houses.php` | GET, POST, PUT, DELETE | `PUT {status: approved\|rejected\|inactive, rejection_reason}`; `POST ?id=&action=images` (multipart); `DELETE ?image_id=` |
+| `rooms.php` | GET, POST, PUT, DELETE | Filters: `boarding_house_id, status, room_type, amenity_id, min_price, max_price`; body `amenity_ids: []` |
+| `amenities.php` | GET, POST, PUT, DELETE | Amenity catalogue |
+| `bookings.php` | GET, POST, PUT, DELETE | Status changes keep room occupancy correct (row-locked transaction) |
+| `reports.php` | GET | `?months=6\|12` |
+| `notifications.php` | GET, PUT, DELETE | `?filter=unread`, `PUT ?action=read_all`, `DELETE ?action=clear_read` |
+| `activity.php` | GET | `?q=&action=&date_from=&date_to=` |
+| `settings.php` | GET, PUT | System settings |
+| `profile.php` | GET, PUT | `?action=password`, `?action=preferences` |
+| `search.php` | GET | Global search (users, boarding houses, rooms, booking IDs) |
+| `options.php` | GET | Dropdown lists: `?type=landlords\|boarding_houses\|rooms\|tenants\|amenities` |
+| `documents.php` | GET | Streams a private verification document to an admin |
 
-## API Request Notes
+---
 
-Authentication and registration endpoints expect `POST` requests with JSON data and a valid CSRF token. Example login payload:
+## Security
 
-```json
-{
-  "email": "tenant@example.com",
-  "password": "your-password",
-  "rememberMe": false,
-  "csrf_token": "token-from-the-session"
-}
-```
+- Passwords hashed with `password_hash` (bcrypt) and upgraded automatically on login.
+- Sessions: HttpOnly + SameSite cookies, ID regenerated on login, 30-minute idle timeout.
+- CSRF tokens on every state-changing request, including logout.
+- Role checks on every admin page **and** API call, re-read from the database each request (disabling an admin takes effect immediately). Admins cannot change their own role/status; only a super admin can manage administrators.
+- Login protection: counts failed attempts only, per email + IP (students on the same campus Wi-Fi are not locked out together), plus a per-account temporary lockout.
+- All SQL uses prepared statements; all output is escaped (`html` template in `ui.js`, `sanitizeForOutput` in PHP).
+- Uploads: type detected from file content, random file names, 5MB limit. ID documents are kept in `storage/documents` (the web server blocks direct access), viewable only by administrators through the API, and every view is logged. Listing photos are in `uploads/`, where scripts cannot run.
+- Database credentials come from `security/config.local.php` or environment variables — not hard-coded for production.
+- Activity log of logins, registrations, approvals and administrative changes.
 
-The API returns JSON containing a success value and a user-facing message. Client-side form scripts in `registerJS/` handle registration interactions and display responses.
+Before going live: enable HTTPS, use a dedicated MySQL user (not `root`), do **not** import `seed.sql`, and delete the `setup/` folder after creating your admin.
 
-## Security and Production Checklist
+---
 
-- Enable HTTPS before deploying outside localhost.
-- Move database credentials and application secrets outside the public web root or into environment variables.
-- Replace the development database password and remove sample accounts.
-- Keep `storage/` and uploaded files protected from direct script execution.
-- Review PHP error display settings and disable verbose errors in production.
-- Add database-backed room, booking, and payment authorization checks before launch.
-- Validate ownership before allowing landlords to edit or remove listings.
-- Add automated tests for authentication, authorization, CSRF validation, and booking state changes.
-- Do not use Vercel as a direct PHP host without converting the backend to serverless functions. Use Apache/PHP hosting, a PHP-capable cloud service, or keep Vercel only for a separate frontend.
+## Roadmap (next phases)
 
-## Current Limitations and Next Steps
-
-The following items are planned extensions rather than complete production features:
-
-1. Persist room and property listings in MySQL instead of a PHP sample array.
-2. Add landlord listing creation, editing, availability, and image-upload screens.
-3. Add a complete tenant booking workflow with booking status history.
-4. Store favorites, messages, reviews, and notifications in the database.
-5. Add payment records and rental contract support.
-6. Add automated PHP and browser tests.
-7. Replace CDN-only frontend assets with a versioned build pipeline for production.
-
-## License
-
-No license has been declared for this project yet. Add a license file before distributing the system publicly.
+1. **Tenant side on the database** — replace the sample data in `php/room-data.php` with approved listings from MySQL; real search by location, school, price, room type and amenities; room details page.
+2. **Landlord dashboard** — landlords add and edit their own boarding houses, rooms, prices, availability, amenities and photos (the database and validation rules are ready).
+3. **Online booking requests** from tenants (the `bookings` table and admin workflow already exist).
+4. Favorites, messaging, reviews and email notifications.
+5. Payments and rental contracts.

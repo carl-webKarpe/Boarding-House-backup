@@ -80,6 +80,11 @@ function initPasswordToggle(toggleId, inputId, eyeOpenId, eyeClosedId) {
   });
 }
 
+/** Escapes text before it is placed inside an HTML template string. */
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function setFieldError(inputEl, errorEl, message) {
@@ -196,7 +201,7 @@ function initFileUpload({ dropzoneId, inputId, previewId, errorId, maxSizeMB = 5
       <div class="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
         ${thumbHtml}
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-textmain dark:text-white truncate">${currentFile.name}</p>
+          <p class="text-sm font-semibold text-textmain dark:text-white truncate">${escapeHtml(currentFile.name)}</p>
           <p class="text-xs text-slate-400">${humanSize(currentFile.size)}</p>
         </div>
         <button type="button" data-remove-file aria-label="Remove file" class="flex-shrink-0 w-8 h-8 grid place-items-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
@@ -354,15 +359,20 @@ function initLoginForm() {
         return;
       }
 
-      showToast(`Welcome back, ${data.username}!`, "success");
+      const account = data.data || {};
+      showToast(`Welcome back, ${account.name || account.username || ""}!`, "success");
       form.reset();
       if (rememberMe.checked) {
         emailInput.value = localStorage.getItem("bhrs-remember-email") || "";
       }
       runValidation();
+      // Each role has its own home: admins -> dashboard, landlords -> dashboard, tenants -> rooms.
+      const target = typeof account.redirect === "string" && /^[a-z/.-]+(\.php)?\/?$/i.test(account.redirect)
+        ? `../${account.redirect}`
+        : "../php/browse-rooms.php";
       setTimeout(() => {
-        window.location.href = "../php/browse-rooms.php";
-      }, 1000);
+        window.location.href = target;
+      }, 800);
     } catch (error) {
       loginSpinner.classList.add("hidden");
       loginBtnText.classList.remove("hidden");
@@ -463,7 +473,7 @@ function initHomepageExperience() {
 
   const openModal = (title) => {
     if (!bookingModal || !modalTitle || !modalBody) {
-      showToast(`Booking request for "${title}" sent. The landlord will contact you shortly.`, "success");
+      showToast(`Online booking for "${title}" is coming soon. Please contact the landlord directly for now.`, "info");
       return;
     }
     modalTitle.textContent = title;
@@ -512,27 +522,27 @@ function initHomepageExperience() {
             article.className = "group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-soft dark:border-slate-800 dark:bg-slate-900/80";
             article.innerHTML = `
               <div class="relative">
-                <img src="${room.image}" alt="${room.title}" class="h-56 w-full object-cover" loading="lazy" />
-                <span class="absolute left-4 top-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">${room.badge}</span>
+                <img src="${escapeHtml(room.image)}" alt="${escapeHtml(room.title)}" class="h-56 w-full object-cover" loading="lazy" />
+                <span class="absolute left-4 top-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">${escapeHtml(room.badge)}</span>
               </div>
               <div class="p-5">
                 <div class="flex items-start justify-between gap-3">
                   <div>
-                    <h3 class="font-display text-lg font-semibold text-slate-900 dark:text-white">${room.title}</h3>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">${room.barangay}, ${room.city}</p>
+                    <h3 class="font-display text-lg font-semibold text-slate-900 dark:text-white">${escapeHtml(room.title)}</h3>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">${escapeHtml(room.barangay)}, ${escapeHtml(room.city)}</p>
                   </div>
-                  <div class="rounded-full bg-amber-50 px-2.5 py-1 text-sm font-semibold text-amber-600 dark:bg-amber-950/40">★ ${room.rating.toFixed(1)}</div>
+                  <div class="rounded-full bg-amber-50 px-2.5 py-1 text-sm font-semibold text-amber-600 dark:bg-amber-950/40">★ ${Number(room.rating).toFixed(1)}</div>
                 </div>
                 <div class="mt-4 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-                  <span>${room.type}</span>
-                  <span>${room.distance} from school</span>
+                  <span>${escapeHtml(room.type)}</span>
+                  <span>${escapeHtml(room.distance)} from school</span>
                 </div>
                 <div class="mt-5 flex items-center justify-between">
                   <div>
-                    <div class="text-lg font-semibold text-slate-900 dark:text-white">₱${room.rent.toLocaleString()}</div>
+                    <div class="text-lg font-semibold text-slate-900 dark:text-white">₱${Number(room.rent).toLocaleString()}</div>
                     <div class="text-sm text-slate-500 dark:text-slate-400">/ month</div>
                   </div>
-                  <button type="button" class="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white" data-book-room="${room.id}">Book</button>
+                  <button type="button" class="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white" data-book-room="${Number(room.id)}">Book</button>
                 </div>
               </div>`;
             fragment.appendChild(article);

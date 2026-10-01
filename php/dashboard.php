@@ -5,10 +5,14 @@ require_once __DIR__ . '/../security/sanitize.php';
 
 applySecurityHeaders();
 requireLogin();
-startSecureSession();
 
-$userName = sanitizeForOutput($_SESSION['username'] ?? 'User');
-$role = sanitizeForOutput($_SESSION['role'] ?? 'user');
+// Administrators have their own dashboard.
+if (isAdminRole(currentUserRole())) {
+    redirectTo('admin/');
+}
+
+$userName = sanitizeForOutput($_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User');
+$role = sanitizeForOutput(roleLabel(currentUserRole()));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,15 +34,12 @@ $role = sanitizeForOutput($_SESSION['role'] ?? 'user');
           <h1 class="h3 mb-1">Welcome, <?php echo $userName; ?>!</h1>
           <p class="text-muted mb-0">Role: <?php echo $role; ?></p>
         </div>
-        <a href="logout.php" class="btn btn-outline-danger">Logout</a>
+        <form method="post" action="logout.php"><?php echo csrfInput(); ?><button type="submit" class="btn btn-outline-danger">Logout</button></form>
       </div>
       <div class="alert alert-success">Your account is protected with secure sessions, password hashing, and CSRF validation.</div>
       <p>This dashboard is a protected landing page for authenticated users. Extend it with real boarding-house management features as the system grows.</p>
       <div class="mt-4 d-flex flex-wrap gap-2">
         <a href="browse-rooms.php" class="btn btn-outline-primary">Browse Rooms</a>
-        <?php if (in_array($role, ['super_admin', 'admin'], true)): ?>
-          <a href="../admin/adminpanel.php" class="btn btn-outline-success">Open Admin Panel</a>
-        <?php endif; ?>
       </div>
     </div>
   </div>
