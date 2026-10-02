@@ -94,7 +94,12 @@ function distanceLabel(item) {
 
 function listingCardHTML(item) {
   const badgeClass = item.availability === "Available" ? "" : " listing-card__badge--soon";
-  const roomsText = item.rooms ? `${item.rooms} room${item.rooms === 1 ? "" : "s"} available` : "No rooms open right now";
+  const isBedspace = item.roomType === "Bedspace";
+  const roomsText = item.availability === "Coming Soon"
+    ? "Opening soon"
+    : isBedspace
+      ? (item.openBeds ? `${item.openBeds} bed${item.openBeds === 1 ? "" : "s"} available` : "No beds open right now")
+      : (item.rooms ? `${item.rooms} room${item.rooms === 1 ? "" : "s"} available` : "No rooms open right now");
   return `
     <article class="listing-card reveal is-visible" data-id="${esc(item.id)}">
       <div class="listing-card__img-wrap">
@@ -153,6 +158,118 @@ function applyFilters() {
 }
 
 /* ---------------------------------------------------------------------- *
+ * Photo slideshow inside "View Details". Photos come from the boarding
+ * house's images in the Admin Dashboard (the cover photo is shown first).
+ * ---------------------------------------------------------------------- */
+function slideshowHTML(item, badgeClass) {
+  const photos = item.images && item.images.length ? item.images : [item.img];
+  const many = photos.length > 1;
+  return `
+    <div class="modal__media slideshow" tabindex="-1" aria-roledescription="carousel" aria-label="Photos of ${esc(item.name)}">
+      <div class="slideshow__track">
+        ${photos.map((src, i) => `
+          <img class="slideshow__slide${i === 0 ? " is-active" : ""}" src="${esc(src)}"
+               alt="${esc(item.name)} photo ${i + 1} of ${photos.length}" ${i === 0 ? "" : 'loading="lazy"'} />`).join("")}
+      </div>
+      <span class="listing-card__badge${badgeClass}">${esc(item.availability)}</span>
+      ${many ? `
+        <button type="button" class="slideshow__nav slideshow__nav--prev" data-slide="prev" aria-label="Previous photo">&#8249;</button>
+        <button type="button" class="slideshow__nav slideshow__nav--next" data-slide="next" aria-label="Next photo">&#8250;</button>
+        <span class="slideshow__count" aria-live="polite"><span data-slide-current>1</span> / ${photos.length}</span>
+        <div class="slideshow__dots">
+          ${photos.map((_, i) => `<button type="button" class="slideshow__dot${i === 0 ? " is-active" : ""}" data-slide-to="${i}" aria-label="Show photo ${i + 1}"></button>`).join("")}
+        </div>` : ""}
+    </div>
+  `;
+}
+
+function initSlideshow(root) {
+  if (!root) return null;
+  const slides = Array.from(root.querySelectorAll(".slideshow__slide"));
+  const dots = Array.from(root.querySelectorAll(".slideshow__dot"));
+  const counter = root.querySelector("[data-slide-current]");
+  let index = 0;
+  let timer = null;
+
+  // Drop photos that fail to load (e.g. a deleted file or an offline web link).
+  slides.forEach((img) => img.addEventListener("error", () => {
+    if (slides.filter((s) => !s.hidden).length > 1) {
+      img.hidden = true;
+      const dot = dots[slides.indexOf(img)];
+      if (dot) dot.hidden = true;
+      if (img.classList.contains("is-active")) step(1);
+    } else {
+      img.src = FALLBACK_IMAGES[0];
+    }
+  }, { once: true }));
+
+  function visible() {
+    return slides.map((s, i) => (s.hidden ? -1 : i)).filter((i) => i >= 0);
+  }
+
+  function go(target) {
+    const list = visible();
+    if (!list.length) return;
+    index = list.includes(target) ? target : list[0];
+    slides.forEach((s, i) => s.classList.toggle("is-active", i === index));
+    dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
+    if (counter) counter.textContent = String(list.indexOf(index) + 1);
+  }
+  function step(offset) {
+    const list = visible();
+    if (list.length < 2) return;
+    go(list[(list.indexOf(index) + offset + list.length) % list.length]);
+  }
+  const next = () => step(1);
+  const prev = () => step(-1);
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function play() {
+    stopTimer();
+    if (slides.length > 1 && !reduceMotion) timer = window.setInterval(next, 4500);
+  }
+  function stopTimer() {
+    if (timer) window.clearInterval(timer);
+    timer = null;
+  }
+
+  root.addEventListener("click", (e) => {
+    const nav = e.target.closest("[data-slide]");
+    const dot = e.target.closest("[data-slide-to]");
+    if (nav) nav.getAttribute("data-slide") === "next" ? next() : prev();
+    if (dot) go(Number(dot.getAttribute("data-slide-to")));
+    if (nav || dot) play();
+  });
+  root.addEventListener("mouseenter", stopTimer);
+  root.addEventListener("mouseleave", play);
+
+  // Swipe on phones and tablets.
+  let startX = null;
+  root.addEventListener("pointerdown", (e) => { startX = e.clientX; });
+  root.addEventListener("pointerup", (e) => {
+    if (startX === null) return;
+    const dx = e.clientX - startX;
+    startX = null;
+    if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); play(); }
+  });
+
+  // Left / right arrow keys while the details window is open.
+  const onKey = (e) => {
+    if (e.key === "ArrowRight") { next(); play(); }
+    if (e.key === "ArrowLeft") { prev(); play(); }
+  };
+  document.addEventListener("keydown", onKey);
+
+  play();
+  return {
+    stop() {
+      stopTimer();
+      document.removeEventListener("keydown", onKey);
+    },
+  };
+}
+
+/* ---------------------------------------------------------------------- *
  * "View Details" modal
  * ---------------------------------------------------------------------- */
 function openListingModal(id) {
@@ -165,15 +282,13 @@ function openListingModal(id) {
   const badgeClass = item.availability === "Available" ? "" : " listing-card__badge--soon";
   const amenitiesHTML = item.amenities.map((a) => `<li>${esc(a)}</li>`).join("");
   const roomsHTML = item.roomList
-    .map((r) => `<li>Room ${esc(r.room_number)} &middot; ${esc(r.type)} &middot; ${currency(r.price)} &middot; ${
-      r.status === "maintenance" ? "Under maintenance" : r.open > 0 ? `${r.open} slot${r.open === 1 ? "" : "s"} open` : "Full"}</li>`)
+    .map((r) => `<li><span>Room ${esc(r.room_number)} &middot; ${esc(r.type)}</span><span>${currency(r.price)}</span><span class="modal__room-status${r.status === "available" ? "" : " is-off"}">${
+      r.status === "maintenance" ? "Coming soon" : r.open > 0 ? `${r.open} open` : "Full"}</span></li>`)
     .join("");
+  const isBedspace = item.roomType === "Bedspace";
 
   body.innerHTML = `
-    <div class="modal__media">
-      <img src="${esc(item.img)}" alt="${esc(item.name)}" />
-      <span class="listing-card__badge${badgeClass}">${esc(item.availability)}</span>
-    </div>
+    ${slideshowHTML(item, badgeClass)}
     <div class="modal__content">
       <h3 id="modalTitle">${esc(item.name)}</h3>
       <span class="listing-card__loc">${esc(item.address)}</span>
@@ -197,8 +312,8 @@ function openListingModal(id) {
 
       <div class="modal__details-grid">
         <div class="modal__detail">
-          <span class="modal__detail-label">Rooms Open</span>
-          <span class="modal__detail-value">${item.rooms} of ${item.totalRooms}</span>
+          <span class="modal__detail-label">${isBedspace ? "Beds Open" : "Rooms Open"}</span>
+          <span class="modal__detail-value">${isBedspace ? `${item.openBeds} of ${item.totalBeds}` : `${item.rooms} of ${item.totalRooms}`}</span>
         </div>
         <div class="modal__detail">
           <span class="modal__detail-label">Availability</span>
@@ -221,7 +336,7 @@ function openListingModal(id) {
 
       <div class="modal__amenities">
         <h4>Rooms</h4>
-        <ul class="modal__amenity-list">${roomsHTML}</ul>
+        <ul class="modal__rooms">${roomsHTML}</ul>
       </div>
 
       ${item.rules ? `<div class="modal__amenities"><h4>House Rules</h4><p>${esc(item.rules)}</p></div>` : ""}
@@ -232,6 +347,7 @@ function openListingModal(id) {
 
   overlay.classList.add("is-open");
   document.body.style.overflow = "hidden";
+  overlay._slideshow = initSlideshow(body.querySelector(".slideshow"));
 
   if (typeof L !== "undefined" && item.coordinates) {
     const map = L.map("roomMap", { scrollWheelZoom: false });
@@ -255,6 +371,10 @@ function openListingModal(id) {
 
 function closeListingModal() {
   const overlay = document.getElementById("modalOverlay");
+  if (overlay._slideshow) {
+    overlay._slideshow.stop();
+    overlay._slideshow = null;
+  }
   if (overlay._roomMap) {
     overlay._roomMap.remove();
     overlay._roomMap = null;

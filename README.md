@@ -76,7 +76,7 @@ The layout is responsive: a collapsible sidebar on desktop, a slide-in drawer on
 
 ## Database design
 
-Run `database/schema.sql` to create every table, then optionally `database/seed.sql` for realistic demo data.
+Run `database/schema.sql` to create every table, then `database/seed.sql` to load your own data (the six boarding houses from the landing page). `database/demo-data.sql` is an optional, larger demo (≈90 users, bookings) for presenting full charts — load it **instead of** `seed.sql`.
 
 ```text
 users ──1:1── landlords ──1:N── boarding_houses ──1:N── rooms ──N:M── amenities
@@ -115,12 +115,14 @@ All relationships use foreign keys. Bookings use `ON DELETE RESTRICT`, so rental
 2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 3. In **MySQL Workbench**, connect to `127.0.0.1:3306` (user `root`), then **File › Run SQL Script…**:
    1. `database/schema.sql` — creates the `bhsystem` database and tables.
-   2. `database/seed.sql` — *optional* demo data (≈90 users, 20 boarding houses, 98 rooms, 169 bookings).
+   2. `database/seed.sql` — your data: 6 boarding houses (Green View, Island Home, Student Haven, Northview, Sunrise, Seaside) with rooms, amenities, photos and map locations, plus the admin and one landlord account per house.
+      *(Or `database/demo-data.sql` instead, for a large demo with tenants and bookings.)*
+   Running `schema.sql` again **resets** the database (all tables are dropped and recreated).
    (phpMyAdmin › Import works too.)
 4. If your MySQL user/password is not `root` with an empty password, copy `security/config.local.example.php` to `security/config.local.php` and edit it. This file is ignored by Git, so passwords never get committed. Environment variables (`BH_DB_HOST`, `BH_DB_USER`, `BH_DB_PASS`, …) also work.
 5. Create your administrator:
-   - **With demo data:** log in as `admin@bhrental.local` / `Admin@12345`.
-   - **Without demo data:** open `http://localhost/BHsystem/setup/create-admin.php` (works only on localhost and only while no admin exists), or run
+   - **With `seed.sql` or `demo-data.sql`:** log in as `admin@bhrental.local` / `Admin@12345`.
+   - **Without either file:** open `http://localhost/BHsystem/setup/create-admin.php` (works only on localhost and only while no admin exists), or run
      `php setup/create-admin.php you@example.com "YourPass@123" First Last`.
 6. Open `http://localhost/BHsystem/html/loginform.html`. Administrators land on the dashboard at `http://localhost/BHsystem/admin/`.
 
@@ -137,9 +139,13 @@ You still need PHP to run the website, but not the XAMPP Control Panel.
 
 ### Landing page = live database records
 
-`http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses**, **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** in the Admin Dashboard (and that have at least one room). Add, edit, approve, reject or deactivate a listing in the admin, refresh the landing page, and the change is there. Set a listing's latitude/longitude in the admin so it appears on the SIIT map.
+`http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses** (with a photo slideshow in **View Details**), **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** in the Admin Dashboard (and that have at least one room). Add, edit, approve, reject or deactivate a listing in the admin, refresh the landing page, and the change is there. Set a listing's latitude/longitude in the admin so it appears on the SIIT map.
 
-### Demo accounts (`database/seed.sql` only — never import it on a real server)
+### Accounts
+
+`database/seed.sql` (your data): `admin@bhrental.local` / `Admin@12345`, and one landlord per house, e.g. `greenview.owner@bhrental.local` / `Demo@12345` (names and phone numbers are placeholders — edit them in Admin › Landlords).
+
+### Demo accounts (`database/demo-data.sql` only — never import it on a real server)
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -181,7 +187,7 @@ BHsystem/
 │   ├── _common.php               JSON responses, validation helpers, error handling
 │   ├── login.php, csrf.php, register-tenant.php, register-landlord.php, rooms.php
 │   └── admin/                    Admin REST API (see below)
-├── database/schema.sql, seed.sql
+├── database/schema.sql, seed.sql (your data), demo-data.sql (optional large demo)
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup
@@ -225,7 +231,7 @@ Every endpoint requires an administrator session. `POST`, `PUT` and `DELETE` als
 - Database credentials come from `security/config.local.php` or environment variables — not hard-coded for production.
 - Activity log of logins, registrations, approvals and administrative changes.
 
-Before going live: enable HTTPS, use a dedicated MySQL user (not `root`), do **not** import `seed.sql`, and delete the `setup/` folder after creating your admin.
+Before going live: enable HTTPS, use a dedicated MySQL user (not `root`), do **not** import `demo-data.sql`, change the seeded passwords, and delete the `setup/` folder after creating your admin.
 
 ---
 

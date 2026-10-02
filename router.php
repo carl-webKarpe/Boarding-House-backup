@@ -45,5 +45,13 @@ if (is_dir($file)) {
     }
 }
 
+// The built-in server does not know the .jfif photo type; send it as JPEG.
+if (is_file($file) && preg_match('/\.jfif$/i', $file)) {
+    header('Content-Type: image/jpeg');
+    header('Content-Length: ' . filesize($file));
+    readfile($file);
+    return true;
+}
+
 // Let the built-in server deliver everything else normally.
 return false;
