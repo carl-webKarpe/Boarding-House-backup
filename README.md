@@ -115,7 +115,7 @@ All relationships use foreign keys. Bookings use `ON DELETE RESTRICT`, so rental
 2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 3. In **MySQL Workbench**, connect to `127.0.0.1:3306` (user `root`), then **File › Run SQL Script…**:
    1. `database/schema.sql` — creates the `bhsystem` database and tables.
-   2. `database/seed.sql` — *optional* demo data (≈90 users, 20 boarding houses, 98 rooms, 169 bookings).
+   2. `database/seed.sql` — *optional* demo data (≈90 users, 8 boarding houses in Dapa, Surigao del Norte near SIIT, their rooms and bookings).
    (phpMyAdmin › Import works too.)
 4. If your MySQL user/password is not `root` with an empty password, copy `security/config.local.example.php` to `security/config.local.php` and edit it. This file is ignored by Git, so passwords never get committed. Environment variables (`BH_DB_HOST`, `BH_DB_USER`, `BH_DB_PASS`, …) also work.
 5. Create your administrator:
