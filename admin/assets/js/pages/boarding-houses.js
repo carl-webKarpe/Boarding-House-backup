@@ -1,7 +1,7 @@
 /* Boarding house listings: review, approve/reject, edit, photos, delete. */
 
 import { api } from '../api.js';
-import { html, raw, icon, badge, assetUrl, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading } from '../ui.js';
+import { html, raw, icon, badge, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading } from '../ui.js';
 import { createListPage, actionButton } from './_list.js';
 
 const STATUS_OPTIONS = [
@@ -19,7 +19,7 @@ const priceRange = (h) => {
 const houseCell = (h) => html`
   <div class="flex min-w-0 items-center gap-3">
     ${h.cover_image
-      ? html`<img src="${assetUrl(h.cover_image)}" alt="" class="h-11 w-11 shrink-0 rounded-xl object-cover" loading="lazy" />`
+      ? html`<img src="../${h.cover_image}" alt="" class="h-11 w-11 shrink-0 rounded-xl object-cover" loading="lazy" />`
       : html`<span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">${icon('house', 'h-5 w-5')}</span>`}
     <div class="min-w-0">
       <p class="truncate font-semibold text-ink">${h.name}</p>
@@ -133,7 +133,7 @@ export async function render(view, ctx) {
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-4" data-gallery>
       ${house.images.map((img) => html`
         <figure class="group relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-100">
-          <img src="${assetUrl(img.file_path)}" alt="Photo of ${house.name}" class="h-full w-full object-cover" loading="lazy" />
+          <img src="../${img.file_path}" alt="Photo of ${house.name}" class="h-full w-full object-cover" loading="lazy" />
           ${img.is_cover ? html`<span class="badge badge-green no-dot absolute left-2 top-2">Cover</span>` : ''}
           <button type="button" class="icon-btn danger absolute right-2 top-2 bg-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" data-remove-image="${img.id}" aria-label="Remove photo">${icon('trash')}</button>
         </figure>`)}

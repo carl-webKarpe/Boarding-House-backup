@@ -32,17 +32,6 @@ const HOUSE_SELECT = "SELECT bh.id, bh.landlord_id, bh.name, bh.description, bh.
 
 const HOUSE_FROM = 'FROM boarding_houses bh JOIN landlords l ON l.id = bh.landlord_id JOIN users u ON u.id = l.user_id';
 
-/**
- * Deletes a photo file only if it was uploaded through the admin
- * (uploads/listings). Photos that point to the project's Image folder or to
- * a web address are left untouched.
- */
-function deleteUploadedListingImage(string $path): void {
-    if (str_starts_with($path, BH_UPLOAD_URL . '/listings/')) {
-        @unlink(BH_UPLOAD_DIR . '/listings/' . basename($path));
-    }
-}
-
 function formatHouse(array $row): array {
     $row = castRow($row, ['id', 'landlord_id', 'owner_user_id', 'room_count', 'available_rooms', 'total_capacity', 'total_occupants'], ['latitude', 'longitude', 'min_price', 'max_price']);
     $row['owner_name'] = fullName($row, 'owner_');
@@ -310,7 +299,7 @@ switch (requestMethod()) {
             if ((int) $image['is_cover'] === 1) {
                 $pdo->prepare('UPDATE boarding_house_images SET is_cover = 1 WHERE boarding_house_id = :id ORDER BY id LIMIT 1')->execute([':id' => $image['boarding_house_id']]);
             }
-            deleteUploadedListingImage((string) $image['file_path']);
+            @unlink(BH_UPLOAD_DIR . '/listings/' . basename((string) $image['file_path']));
             adminLog('listing_update', 'Administrator removed a photo from ' . $image['name'], 'boarding_house', (int) $image['boarding_house_id']);
             jsonResponse(loadHouse((int) $image['boarding_house_id']), 'Photo removed.');
         }
@@ -330,7 +319,7 @@ switch (requestMethod()) {
             throw $e;
         }
         foreach ($paths as $path) {
-            deleteUploadedListingImage((string) $path);
+            @unlink(BH_UPLOAD_DIR . '/listings/' . basename((string) $path));
         }
 
         adminLog('listing_delete', 'Administrator deleted boarding house: ' . $house['name'], 'boarding_house', $id);

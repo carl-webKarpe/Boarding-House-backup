@@ -134,9 +134,6 @@ export function timeAgo(value) {
   return 'just now';
 }
 
-/** URL for a stored photo path ("uploads/listings/x.jpg", "Image/ROOM 1.jfif" or a full https:// link). */
-export const assetUrl = (path) => (/^https?:\/\//i.test(path || '') ? path : `../${String(path || '').split('/').map(encodeURIComponent).join('/')}`);
-
 export const money = (value) => (value === null || value === undefined || value === '' ? '—' : `₱${Number(value).toLocaleString('en-PH', { maximumFractionDigits: 0 })}`);
 export const num = (value) => Number(value || 0).toLocaleString('en-PH');
 export const titleCase = (value) => String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
