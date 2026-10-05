@@ -11,7 +11,7 @@
 
 import { html, num } from './ui.js';
 
-export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'];
+export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
 export const BRAND = '#16a34a';
 const INK = '#1e293b';
 const MUTED = '#64748b';

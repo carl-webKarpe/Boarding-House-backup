@@ -175,3 +175,16 @@ function collectValidated(array $results): array {
 function likeValue(string $search): string {
     return '%' . addcslashes($search, '%_\\') . '%';
 }
+
+/**
+ * Turns a stored photo path ("uploads/listings/x.jpg", "Image/ROOM 1.jfif")
+ * into a URL usable from pages one folder deep (php/, html/). Full http(s)
+ * URLs are returned unchanged.
+ */
+function publicAssetUrl(string $path): string {
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+
+    return '../' . implode('/', array_map('rawurlencode', explode('/', ltrim($path, '/'))));
+}

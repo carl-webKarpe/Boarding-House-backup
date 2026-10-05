@@ -11,15 +11,16 @@ declare(strict_types=1);
  *   PUT    bookings.php?id=7      update { status, move_in_date, notes }
  *   DELETE bookings.php?id=7      delete
  *
- * Occupancy rule: an "approved" booking holds one slot in the room.
- * Approving adds an occupant; cancelling/completing an approved booking frees it.
+ * Occupancy rule: an "approved" booking holds occupants_count slots in the
+ * room. Approving adds them; cancelling/completing an approved booking frees them.
  */
 
 require_once __DIR__ . '/_admin.php';
 
-const BOOKING_STATUSES = ['pending', 'approved', 'cancelled', 'completed'];
+const BOOKING_STATUSES = ['pending', 'approved', 'rejected', 'cancelled', 'completed'];
 
 const BOOKING_SELECT = "SELECT b.id, b.tenant_id, b.room_id, b.booking_date, b.move_in_date, b.status, b.notes, b.created_at, b.updated_at,
+    b.occupants_count, b.contact_name, b.contact_number, b.contact_email, b.message,
     t.first_name AS tenant_first_name, t.last_name AS tenant_last_name, t.username AS tenant_username, t.email AS tenant_email,
     t.contact_number AS tenant_contact,
     r.room_number, r.room_type, r.price, r.capacity, r.occupants, r.status AS room_status,
@@ -28,7 +29,7 @@ const BOOKING_SELECT = "SELECT b.id, b.tenant_id, b.room_id, b.booking_date, b.m
 const BOOKING_FROM = 'FROM bookings b JOIN users t ON t.id = b.tenant_id JOIN rooms r ON r.id = b.room_id JOIN boarding_houses bh ON bh.id = r.boarding_house_id';
 
 function formatBooking(array $row): array {
-    $row = castRow($row, ['id', 'tenant_id', 'room_id', 'boarding_house_id', 'capacity', 'occupants'], ['price']);
+    $row = castRow($row, ['id', 'tenant_id', 'room_id', 'boarding_house_id', 'capacity', 'occupants', 'occupants_count'], ['price']);
     $row['code'] = sprintf('BK-%05d', $row['id']);
     $row['tenant_name'] = fullName($row, 'tenant_');
     return $row;
@@ -168,7 +169,7 @@ switch (requestMethod()) {
 
         [$rows, $meta] = pagedQuery(BOOKING_SELECT, $fromWhere, $params, $order, paginationParams());
         $counts = $pdo->query("SELECT COUNT(*) AS all_bookings, SUM(status = 'pending') AS pending, SUM(status = 'approved') AS approved,
-            SUM(status = 'cancelled') AS cancelled, SUM(status = 'completed') AS completed FROM bookings")->fetch();
+            SUM(status = 'rejected') AS rejected, SUM(status = 'cancelled') AS cancelled, SUM(status = 'completed') AS completed FROM bookings")->fetch();
 
         jsonResponse(array_map('formatBooking', $rows), '', 200, [
             'meta' => $meta,
@@ -206,9 +207,9 @@ switch (requestMethod()) {
         $pdo->beginTransaction();
         if ($newStatus !== $before['status']) {
             if ($newStatus === 'approved') {
-                adjustOccupancy($before['room_id'], +1);
+                adjustOccupancy($before['room_id'], +$before['occupants_count']);
             } elseif ($before['status'] === 'approved') {
-                adjustOccupancy($before['room_id'], -1);
+                adjustOccupancy($before['room_id'], -$before['occupants_count']);
             }
         }
 
@@ -239,7 +240,7 @@ switch (requestMethod()) {
         $booking = loadBooking($id);
         $pdo->beginTransaction();
         if ($booking['status'] === 'approved') {
-            adjustOccupancy($booking['room_id'], -1);
+            adjustOccupancy($booking['room_id'], -$booking['occupants_count']);
         }
         $pdo->prepare('DELETE FROM bookings WHERE id = :id')->execute([':id' => $id]);
         $pdo->commit();

@@ -44,12 +44,12 @@ export async function render(container, ctx) {
 
     const s = r.summary;
     const sum = (arr) => arr.reduce((a, b) => a + b, 0);
-    const bookingTotal = sum(r.booking_activity.pending) + sum(r.booking_activity.approved) + sum(r.booking_activity.cancelled) + sum(r.booking_activity.completed);
+    const bookingTotal = Object.values(r.booking_activity).reduce((total, series) => total + sum(series), 0);
     const newUsers = sum(r.registrations.tenants) + sum(r.registrations.landlords);
 
     const exports = {
       registrations: [['Month', 'New tenants', 'New landlords'], r.labels.map((l, i) => [l, r.registrations.tenants[i], r.registrations.landlords[i]])],
-      bookings: [['Month', 'Pending', 'Approved', 'Cancelled', 'Completed'], r.labels.map((l, i) => [l, r.booking_activity.pending[i], r.booking_activity.approved[i], r.booking_activity.cancelled[i], r.booking_activity.completed[i]])],
+      bookings: [['Month', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed'], r.labels.map((l, i) => [l, r.booking_activity.pending[i], r.booking_activity.approved[i], r.booking_activity.rejected[i], r.booking_activity.cancelled[i], r.booking_activity.completed[i]])],
       listings: [['Month', 'Submitted', 'Approved'], r.labels.map((l, i) => [l, r.listings.submitted[i], r.listings.approved[i]])],
       cities: [['City / municipality', 'Approved boarding houses', 'Rooms', 'Available rooms', 'Average rent'], r.by_city.map((c) => [c.city, c.houses, c.rooms, c.available_rooms, c.avg_price])],
       types: [['Room type', 'Rooms', 'Beds', 'Occupied beds', 'Average rent', 'Lowest', 'Highest'], r.by_room_type.map((t) => [t.room_type, t.rooms, t.beds, t.occupants, t.avg_price, t.min_price, t.max_price])],
@@ -122,6 +122,7 @@ export async function render(container, ctx) {
     groupedBarChart($('#rptBookings', container), r.labels, [
       { label: 'Pending', data: r.booking_activity.pending },
       { label: 'Approved', data: r.booking_activity.approved },
+      { label: 'Rejected', data: r.booking_activity.rejected },
       { label: 'Cancelled', data: r.booking_activity.cancelled },
       { label: 'Completed', data: r.booking_activity.completed },
     ], { stacked: true });

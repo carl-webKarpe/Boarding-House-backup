@@ -7,12 +7,14 @@ import { createListPage, actionButton } from './_list.js';
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'completed', label: 'Completed' },
 ];
 
 const TRANSITIONS = {
   approved: { title: 'Approve booking?', text: 'The tenant gets a slot in this room and the room availability updates automatically.', button: 'Approve booking', icon: 'check', danger: false },
+  rejected: { title: 'Reject reservation?', text: 'The student will be told the reservation was not accepted. No room slot is used.', button: 'Reject reservation', icon: 'ban', danger: true },
   cancelled: { title: 'Cancel booking?', text: 'The booking will be cancelled. If it was approved, the tenant’s slot is released.', button: 'Cancel booking', icon: 'x', danger: true },
   completed: { title: 'Mark as completed?', text: 'Use this when the rental period has ended. The tenant’s slot is released.', button: 'Mark completed', icon: 'checkCircle', danger: false },
 };
@@ -92,8 +94,9 @@ export async function render(view, ctx) {
 
   const actionsFor = (b) => [
     b.status === 'pending' ? ['approved', 'check', 'Approve', 'success'] : null,
+    b.status === 'pending' ? ['rejected', 'ban', 'Reject', 'danger'] : null,
     b.status === 'approved' ? ['completed', 'checkCircle', 'Mark completed', 'success'] : null,
-    b.status === 'pending' || b.status === 'approved' ? ['cancelled', 'x', 'Cancel', 'danger'] : null,
+    b.status === 'approved' ? ['cancelled', 'x', 'Cancel', 'danger'] : null,
   ].filter(Boolean);
 
   const showDetails = async (id, list) => {
@@ -109,11 +112,14 @@ export async function render(view, ctx) {
           ['Contact', [b.tenant_email, b.tenant_contact].filter(Boolean).join(' · ')],
           ['Boarding house', html`<a href="#/boarding-houses?view=${b.boarding_house_id}" class="font-medium text-primary hover:underline" data-close>${b.boarding_house_name}</a>`],
           ['Room', `Room ${b.room_number} · ${b.room_type}`],
+          ['Occupants', b.occupants_count],
+          b.contact_name || b.contact_number || b.contact_email ? ['Reservation contact', [b.contact_name, b.contact_number, b.contact_email].filter(Boolean).join(' · ')] : null,
           ['Monthly rent', money(b.price)],
           ['Room occupancy', `${b.occupants}/${b.capacity} (${b.room_status})`],
           ['Move-in date', b.move_in_date ? fmtDate(b.move_in_date) : ''],
           ['Last updated', fmtDateTime(b.updated_at || b.created_at)],
         ])}
+        ${b.message ? html`<h3 class="mb-1 mt-5 text-sm font-semibold">Message from the student</h3><p class="whitespace-pre-line text-sm text-slate-600">${b.message}</p>` : ''}
         ${b.notes ? html`<h3 class="mb-1 mt-5 text-sm font-semibold">Notes</h3><p class="text-sm text-slate-600">${b.notes}</p>` : ''}`,
       footer: html`
         ${actionsFor(b).map(([status, iconName, label]) => html`<button type="button" class="btn ${status === 'cancelled' ? 'btn-secondary text-rose-600' : 'btn-primary'}" data-status="${status}">${icon(iconName)} ${label}</button>`)}
@@ -135,6 +141,7 @@ export async function render(view, ctx) {
       { value: '', label: 'All', count: c.all_bookings },
       { value: 'pending', label: 'Pending', count: c.pending },
       { value: 'approved', label: 'Approved', count: c.approved },
+      { value: 'rejected', label: 'Rejected', count: c.rejected },
       { value: 'completed', label: 'Completed', count: c.completed },
       { value: 'cancelled', label: 'Cancelled', count: c.cancelled },
     ],

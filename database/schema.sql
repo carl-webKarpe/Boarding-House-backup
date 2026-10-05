@@ -15,6 +15,8 @@ USE bhsystem;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS inquiries;
+DROP TABLE IF EXISTS room_images;
 DROP TABLE IF EXISTS activity_logs;
 DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS notifications;
@@ -38,6 +40,7 @@ CREATE TABLE users (
   username VARCHAR(50) NOT NULL,
   email VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
+  avatar_path VARCHAR(255) NULL,
   role ENUM('tenant', 'landlord', 'admin', 'super_admin') NOT NULL DEFAULT 'tenant',
   first_name VARCHAR(80) NOT NULL DEFAULT '',
   middle_name VARCHAR(80) NULL,
@@ -157,6 +160,17 @@ CREATE TABLE rooms (
   CONSTRAINT fk_rooms_house FOREIGN KEY (boarding_house_id) REFERENCES boarding_houses (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Photos of one specific room (shown before the boarding house photos).
+CREATE TABLE room_images (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  room_id INT UNSIGNED NOT NULL,
+  file_path VARCHAR(255) NOT NULL,
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_room_images_room (room_id, sort_order),
+  CONSTRAINT fk_room_images_room FOREIGN KEY (room_id) REFERENCES rooms (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE amenities (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(60) NOT NULL,
@@ -183,7 +197,12 @@ CREATE TABLE bookings (
   room_id INT UNSIGNED NOT NULL,
   booking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   move_in_date DATE NULL,
-  status ENUM('pending', 'approved', 'cancelled', 'completed') NOT NULL DEFAULT 'pending',
+  occupants_count TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  contact_name VARCHAR(160) NULL,
+  contact_number VARCHAR(20) NULL,
+  contact_email VARCHAR(255) NULL,
+  message VARCHAR(1000) NULL,
+  status ENUM('pending', 'approved', 'rejected', 'cancelled', 'completed') NOT NULL DEFAULT 'pending',
   notes VARCHAR(500) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -193,6 +212,33 @@ CREATE TABLE bookings (
   KEY idx_bookings_date (booking_date),
   CONSTRAINT fk_bookings_tenant FOREIGN KEY (tenant_id) REFERENCES users (id) ON DELETE RESTRICT,
   CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms (id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- inquiries: "Contact Landlord" messages from students (logged in or guests).
+-- The landlord reads them and replies; tenant_id is NULL for guests.
+-- ----------------------------------------------------------------------------
+CREATE TABLE inquiries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  boarding_house_id INT UNSIGNED NOT NULL,
+  room_id INT UNSIGNED NULL,
+  landlord_user_id INT UNSIGNED NOT NULL,
+  tenant_id INT UNSIGNED NULL,
+  sender_name VARCHAR(160) NOT NULL,
+  sender_email VARCHAR(255) NOT NULL,
+  sender_phone VARCHAR(20) NULL,
+  message VARCHAR(2000) NOT NULL,
+  status ENUM('new', 'read', 'replied', 'closed') NOT NULL DEFAULT 'new',
+  reply VARCHAR(2000) NULL,
+  replied_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_inquiries_landlord (landlord_user_id, status),
+  KEY idx_inquiries_tenant (tenant_id),
+  CONSTRAINT fk_inquiries_house FOREIGN KEY (boarding_house_id) REFERENCES boarding_houses (id) ON DELETE CASCADE,
+  CONSTRAINT fk_inquiries_room FOREIGN KEY (room_id) REFERENCES rooms (id) ON DELETE SET NULL,
+  CONSTRAINT fk_inquiries_landlord FOREIGN KEY (landlord_user_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_inquiries_tenant FOREIGN KEY (tenant_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

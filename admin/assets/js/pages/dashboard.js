@@ -184,8 +184,8 @@ export async function render(container, ctx) {
       { label: 'Tenants', data: charts.registrations.tenants },
       { label: 'Landlords', data: charts.registrations.landlords },
     ]);
-    horizontalBarChart($('#chartBookings', container), ['Pending', 'Approved', 'Cancelled', 'Completed'],
-      ['pending', 'approved', 'cancelled', 'completed'].map((k) => charts.bookings[k]), { color: BRAND });
+    horizontalBarChart($('#chartBookings', container), ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed'],
+      ['pending', 'approved', 'rejected', 'cancelled', 'completed'].map((k) => charts.bookings[k]), { color: BRAND });
     horizontalBarChart($('#chartRooms', container), ['Available', 'Occupied', 'Maintenance'],
       ['available', 'occupied', 'maintenance'].map((k) => charts.rooms[k]), { color: BRAND });
     horizontalBarChart($('#chartHouses', container), ['Approved', 'Pending approval', 'Rejected', 'Inactive'],

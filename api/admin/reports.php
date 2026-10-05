@@ -37,11 +37,11 @@ jsonResponse([
     'registrations' => monthlySeries('users', 'created_at', 'role', ['tenants' => ['tenant'], 'landlords' => ['landlord']], $range),
     'listings' => monthlySeries('boarding_houses', 'created_at', 'status', ['submitted' => ['pending', 'approved', 'rejected', 'inactive'], 'approved' => ['approved']], $range),
     'booking_activity' => monthlySeries('bookings', 'booking_date', 'status', [
-        'pending' => ['pending'], 'approved' => ['approved'], 'cancelled' => ['cancelled'], 'completed' => ['completed'],
+        'pending' => ['pending'], 'approved' => ['approved'], 'rejected' => ['rejected'], 'cancelled' => ['cancelled'], 'completed' => ['completed'],
     ], $range),
     'rooms' => statusCounts('rooms', ['available', 'occupied', 'maintenance']),
     'boarding_houses' => statusCounts('boarding_houses', ['approved', 'pending', 'rejected', 'inactive']),
-    'bookings' => statusCounts('bookings', ['pending', 'approved', 'cancelled', 'completed']),
+    'bookings' => statusCounts('bookings', ['pending', 'approved', 'rejected', 'cancelled', 'completed']),
     'by_city' => array_map(fn ($r) => castRow($r, ['houses', 'rooms', 'available_rooms'], ['avg_price']), $byCity),
     'by_room_type' => array_map(fn ($r) => castRow($r, ['rooms', 'beds', 'occupants'], ['avg_price', 'min_price', 'max_price']), $byType),
     'top_occupancy' => array_map(fn ($r) => castRow($r, ['id', 'beds', 'occupants'], ['occupancy_rate']), $topHouses),

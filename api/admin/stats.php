@@ -28,7 +28,7 @@ jsonResponse([
         'registrations' => monthlySeries('users', 'created_at', 'role', ['tenants' => ['tenant'], 'landlords' => ['landlord']], $range),
         'boarding_houses' => statusCounts('boarding_houses', ['approved', 'pending', 'rejected', 'inactive']),
         'rooms' => statusCounts('rooms', ['available', 'occupied', 'maintenance']),
-        'bookings' => statusCounts('bookings', ['pending', 'approved', 'cancelled', 'completed']),
+        'bookings' => statusCounts('bookings', ['pending', 'approved', 'rejected', 'cancelled', 'completed']),
     ],
     'recent_activities' => recentActivities(8),
     'pending_listings' => array_map(static fn ($h) => [
