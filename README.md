@@ -184,7 +184,7 @@ After the correct password, the **Super Admin** gets a 6-digit code by email (Gm
 
 1. **Install PHPMailer with Composer** (once): install Composer from https://getcomposer.org, then in the project folder run `composer install`. The library goes to `security/vendor/` (protected, not uploaded to Git).
 2. **Gmail App Password:** turn on 2-Step Verification in the Gmail account, then create an App Password at https://myaccount.google.com/apppasswords.
-3. Copy `security/mail.local.example.php` to `security/mail.local.php` and fill in `username`, `password` (the App Password) and `from_email` (same Gmail address). This file is ignored by Git.
+3. Run `php setup/setup-mail.php` (asks for your Gmail and App Password, creates the file and sends a test email) — or copy `security/mail.local.example.php` to `security/mail.local.php` and fill in `username`, `password` (the App Password) and `from_email` (same Gmail address). This file is ignored by Git.
 4. Make sure the Super Admin account's email is a **real inbox you can open** (Admin › Settings › My profile) — the code is sent there.
 
 Check the setup any time with `php setup/check-mail.php` (add your Gmail address to also send a test email). While `security/mail.local.php` is missing, the code step is skipped (a warning is written to `storage/app.log`), so you can never be locked out: if email stops working, rename that file to log in, then fix it.
