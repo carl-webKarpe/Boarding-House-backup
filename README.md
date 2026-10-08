@@ -187,7 +187,7 @@ After the correct password, the **Super Admin** gets a 6-digit code by email (Gm
 3. Copy `security/mail.local.example.php` to `security/mail.local.php` and fill in `username`, `password` (the App Password) and `from_email` (same Gmail address). This file is ignored by Git.
 4. Make sure the Super Admin account's email is a **real inbox you can open** (Admin › Settings › My profile) — the code is sent there.
 
-While `security/mail.local.php` is missing, the code step is skipped (a warning is written to `storage/app.log`), so you can never be locked out: if email stops working, rename that file to log in, then fix it.
+Check the setup any time with `php setup/check-mail.php` (add your Gmail address to also send a test email). While `security/mail.local.php` is missing, the code step is skipped (a warning is written to `storage/app.log`), so you can never be locked out: if email stops working, rename that file to log in, then fix it.
 
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
