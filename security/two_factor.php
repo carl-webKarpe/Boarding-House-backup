@@ -60,7 +60,7 @@ function twoFactorRequiredFor(string $role): bool {
 /** a***n@gmail.com */
 function maskEmail(string $email): string {
     [$name, $domain] = array_pad(explode('@', $email, 2), 2, '');
-    $shown = mb_strlen($name) <= 2 ? mb_substr($name, 0, 1) : mb_substr($name, 0, 1) . str_repeat('*', max(1, mb_strlen($name) - 2)) . mb_substr($name, -1);
+    $shown = mb_strlen($name) <= 2 ? mb_substr($name, 0, 1) : mb_substr($name, 0, 1) . str_repeat('*', min(5, max(1, mb_strlen($name) - 2))) . mb_substr($name, -1);
     return $shown . '@' . $domain;
 }
 
