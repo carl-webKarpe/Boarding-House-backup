@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS amenities;
 DROP TABLE IF EXISTS rooms;
 DROP TABLE IF EXISTS boarding_house_images;
 DROP TABLE IF EXISTS boarding_houses;
+DROP TABLE IF EXISTS barangays;
 DROP TABLE IF EXISTS verification_documents;
 DROP TABLE IF EXISTS landlords;
 DROP TABLE IF EXISTS password_resets;
@@ -96,6 +97,20 @@ CREATE TABLE verification_documents (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- barangays: the dropdown list landlords pick from. Add more rows here (or in
+-- MySQL Workbench) to support more barangays/municipalities.
+-- ----------------------------------------------------------------------------
+CREATE TABLE barangays (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  municipality VARCHAR(100) NOT NULL,
+  province VARCHAR(100) NOT NULL DEFAULT 'Surigao del Norte',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_barangay (name, municipality, province),
+  KEY idx_barangay_municipality (municipality)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- boarding_houses: LANDLORD 1 ── * BOARDING HOUSE
 -- ----------------------------------------------------------------------------
 CREATE TABLE boarding_houses (
@@ -104,16 +119,23 @@ CREATE TABLE boarding_houses (
   name VARCHAR(150) NOT NULL,
   description TEXT NULL,
   address VARCHAR(255) NOT NULL,
+  barangay_id INT UNSIGNED NULL,
   barangay VARCHAR(100) NULL,
   city VARCHAR(100) NOT NULL,
   province VARCHAR(100) NULL,
+  location_note VARCHAR(255) NULL,
   latitude DECIMAL(10, 7) NULL,
   longitude DECIMAL(10, 7) NULL,
+  map_url VARCHAR(500) NULL,
   nearby_school VARCHAR(150) NULL,
+  distance_note VARCHAR(150) NULL,
+  contact_name VARCHAR(160) NULL,
   contact_number VARCHAR(20) NULL,
   contact_email VARCHAR(255) NULL,
   house_rules TEXT NULL,
+  -- status = administrator approval; availability_status = set by the landlord.
   status ENUM('pending', 'approved', 'rejected', 'inactive') NOT NULL DEFAULT 'pending',
+  availability_status ENUM('available', 'fully_occupied', 'temporarily_unavailable') NOT NULL DEFAULT 'available',
   rejection_reason VARCHAR(255) NULL,
   approved_at DATETIME NULL,
   approved_by INT UNSIGNED NULL,
@@ -122,7 +144,9 @@ CREATE TABLE boarding_houses (
   KEY idx_bh_landlord (landlord_id),
   KEY idx_bh_status (status),
   KEY idx_bh_city (city),
+  KEY idx_bh_barangay (barangay_id),
   CONSTRAINT fk_bh_landlord FOREIGN KEY (landlord_id) REFERENCES landlords (id) ON DELETE CASCADE,
+  CONSTRAINT fk_bh_barangay FOREIGN KEY (barangay_id) REFERENCES barangays (id) ON DELETE SET NULL,
   CONSTRAINT fk_bh_approved_by FOREIGN KEY (approved_by) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -143,14 +167,14 @@ CREATE TABLE boarding_house_images (
 CREATE TABLE rooms (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   boarding_house_id INT UNSIGNED NOT NULL,
-  room_number VARCHAR(20) NOT NULL,
+  room_number VARCHAR(60) NOT NULL,
   room_type ENUM('solo', 'shared', 'dormitory', 'studio') NOT NULL DEFAULT 'shared',
   price DECIMAL(10, 2) NOT NULL,
   deposit DECIMAL(10, 2) NOT NULL DEFAULT 0,
   capacity TINYINT UNSIGNED NOT NULL DEFAULT 1,
   occupants TINYINT UNSIGNED NOT NULL DEFAULT 0,
   size_sqm DECIMAL(6, 2) NULL,
-  description VARCHAR(500) NULL,
+  description TEXT NULL,
   status ENUM('available', 'occupied', 'maintenance') NOT NULL DEFAULT 'available',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -174,8 +198,11 @@ CREATE TABLE room_images (
 CREATE TABLE amenities (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(60) NOT NULL,
+  -- NULL = standard amenity; otherwise the landlord who added it as a custom amenity.
+  created_by INT UNSIGNED NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_amenities_name (name)
+  UNIQUE KEY uq_amenities_name (name),
+  CONSTRAINT fk_amenities_creator FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE room_amenities (
@@ -308,7 +335,58 @@ INSERT INTO settings (setting_key, setting_value) VALUES
   ('max_upload_mb', '5');
 
 INSERT INTO amenities (name) VALUES
-  ('WiFi'), ('Air Conditioning'), ('Electric Fan'), ('Study Table'), ('Bed & Mattress'),
-  ('Cabinet'), ('Private Bathroom'), ('Shared Bathroom'), ('Kitchen Access'), ('Laundry Area'),
-  ('CCTV'), ('Water Included'), ('Electricity Included'), ('Parking'), ('Curfew-Free'),
-  ('Balcony'), ('Refrigerator'), ('Security Guard');
+  ('Wi-Fi'), ('Bed'), ('Cabinet'), ('Table'), ('Chair'), ('Electric Fan'), ('Air Conditioning'),
+  ('Private Bathroom'), ('Shared Bathroom'), ('Kitchen'), ('Laundry Area'), ('Parking'),
+  ('Study Area'), ('CCTV'), ('Water Supply'), ('Electricity Included');
+
+-- Barangays of Dapa (29) and General Luna (19), Siargao Island, Surigao del Norte.
+-- To add more:  INSERT INTO barangays (name, municipality, province) VALUES ('Name', 'Municipality', 'Surigao del Norte');
+INSERT IGNORE INTO barangays (name, municipality, province) VALUES
+  ('Bagakay', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 1 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 2 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 3 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 4 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 5 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 6 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 7 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 8 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 9 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 10 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 11 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 12 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Barangay 13 (Poblacion)', 'Dapa', 'Surigao del Norte'),
+  ('Buenavista', 'Dapa', 'Surigao del Norte'),
+  ('Cabawa', 'Dapa', 'Surigao del Norte'),
+  ('Cambas-ac', 'Dapa', 'Surigao del Norte'),
+  ('Consolacion', 'Dapa', 'Surigao del Norte'),
+  ('Corregidor', 'Dapa', 'Surigao del Norte'),
+  ('Dagohoy', 'Dapa', 'Surigao del Norte'),
+  ('Don Paulino', 'Dapa', 'Surigao del Norte'),
+  ('Jubang', 'Dapa', 'Surigao del Norte'),
+  ('Montserrat', 'Dapa', 'Surigao del Norte'),
+  ('Osmeña', 'Dapa', 'Surigao del Norte'),
+  ('San Carlos', 'Dapa', 'Surigao del Norte'),
+  ('San Miguel', 'Dapa', 'Surigao del Norte'),
+  ('Santa Fe', 'Dapa', 'Surigao del Norte'),
+  ('Santa Felomina', 'Dapa', 'Surigao del Norte'),
+  ('Union', 'Dapa', 'Surigao del Norte'),
+  ('Anajawan', 'General Luna', 'Surigao del Norte'),
+  ('Cabitoonan', 'General Luna', 'Surigao del Norte'),
+  ('Catangnan', 'General Luna', 'Surigao del Norte'),
+  ('Consuelo', 'General Luna', 'Surigao del Norte'),
+  ('Corazon', 'General Luna', 'Surigao del Norte'),
+  ('Daku', 'General Luna', 'Surigao del Norte'),
+  ('La Januza', 'General Luna', 'Surigao del Norte'),
+  ('Libertad', 'General Luna', 'Surigao del Norte'),
+  ('Magsaysay', 'General Luna', 'Surigao del Norte'),
+  ('Malinao', 'General Luna', 'Surigao del Norte'),
+  ('Poblacion I', 'General Luna', 'Surigao del Norte'),
+  ('Poblacion II', 'General Luna', 'Surigao del Norte'),
+  ('Poblacion III', 'General Luna', 'Surigao del Norte'),
+  ('Poblacion IV', 'General Luna', 'Surigao del Norte'),
+  ('Poblacion V', 'General Luna', 'Surigao del Norte'),
+  ('Santa Cruz', 'General Luna', 'Surigao del Norte'),
+  ('Santa Fe', 'General Luna', 'Surigao del Norte'),
+  ('Suyangan', 'General Luna', 'Surigao del Norte'),
+  ('Tawin-tawin', 'General Luna', 'Surigao del Norte');

@@ -1,0 +1,75 @@
+/* Browse Rooms page. Build: npm run build:tenant  ->  assets/css/tenant.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .field {
+    @apply block w-full rounded-2xl border border-brand/15 bg-white px-4 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted/70 focus:border-brand focus:ring-4 focus:ring-lime/40;
+  }
+  .field.is-invalid { @apply border-rose-400 ring-4 ring-rose-100; }
+  .field-label { @apply mb-1 block text-sm font-semibold text-ink; }
+  .field-error { @apply mt-1 text-xs text-rose-600; }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-light focus:outline-none focus-visible:ring-4 focus-visible:ring-lime/60 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-lime {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-brand transition hover:brightness-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-brand/20 bg-white px-5 py-2.5 text-sm font-semibold text-brand transition hover:border-brand hover:bg-mint focus:outline-none focus-visible:ring-4 focus-visible:ring-lime/60 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-brand/5 hover:text-brand; }
+  .btn-sm { @apply px-3.5 py-1.5 text-xs; }
+
+  .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide; }
+  .badge::before { content: ''; @apply h-1.5 w-1.5 rounded-full bg-current; }
+  .badge-available { @apply bg-emerald-100 text-emerald-800; }
+  .badge-reserved { @apply bg-amber-100 text-amber-800; }
+  .badge-full { @apply bg-rose-100 text-rose-700; }
+  .badge-pending { @apply bg-amber-100 text-amber-800; }
+  .badge-approved, .badge-completed { @apply bg-emerald-100 text-emerald-800; }
+  .badge-rejected, .badge-cancelled { @apply bg-rose-100 text-rose-700; }
+  .badge-replied { @apply bg-emerald-100 text-emerald-800; }
+  .badge-new, .badge-read { @apply bg-slate-100 text-slate-600; }
+  .badge-closed { @apply bg-slate-100 text-slate-500; }
+
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full bg-mint/70 px-2.5 py-1 text-xs font-medium text-brand; }
+
+  .skeleton { @apply animate-pulse rounded-2xl bg-brand/10; }
+  .skeleton-text { @apply animate-pulse; }
+
+  .toggle { @apply relative inline-flex h-6 w-11 shrink-0; }
+  .toggle input { @apply absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0; }
+  .toggle span { @apply absolute inset-0 rounded-full bg-slate-300 transition; }
+  .toggle span::after { content: ''; @apply absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition; }
+  .toggle input:checked + span { @apply bg-brand; }
+  .toggle input:focus-visible + span { @apply ring-4 ring-lime/60; }
+  .toggle input:checked + span::after { transform: translateX(1.25rem); }
+
+  /* Room cards: details on the left, gallery on the right (stacked on phones). */
+  .room-card { @apply grid overflow-hidden rounded-3xl border border-brand/10 bg-white shadow-card md:grid-cols-[1.05fr_1fr]; animation: rise 0.35s ease-out both; }
+  .gallery-main { @apply relative overflow-hidden bg-brand/5; }
+  .gallery-main img { transition: opacity 0.25s ease, transform 0.5s ease; }
+  .gallery-thumb { @apply h-14 w-20 shrink-0 overflow-hidden rounded-xl opacity-70 ring-2 ring-transparent transition hover:opacity-100 focus:outline-none focus-visible:ring-lime; }
+  .gallery-thumb.is-active { @apply opacity-100 ring-lime; }
+  .gallery-nav { @apply absolute top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-brand shadow transition hover:bg-white; }
+
+  /* Dialogs */
+  .dialog-backdrop { @apply fixed inset-0 z-[60] flex items-end justify-center bg-brand/50 p-0 backdrop-blur-sm sm:items-center sm:p-4; animation: fade 0.2s ease-out both; }
+  .dialog { @apply flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-3xl; animation: rise 0.25s ease-out both; }
+  .drawer-backdrop { @apply fixed inset-0 z-[60] flex justify-end bg-brand/50 backdrop-blur-sm; animation: fade 0.2s ease-out both; }
+  .drawer { @apply flex h-full w-full max-w-lg flex-col bg-cream shadow-2xl; animation: slide-in 0.3s ease-out both; }
+
+  .toast { @apply pointer-events-auto flex max-w-sm items-start gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white shadow-card; animation: rise 0.25s ease-out both; }
+  .toast.leaving { opacity: 0; transform: translateY(6px); transition: all 0.2s ease; }
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in { from { transform: translateX(100%); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

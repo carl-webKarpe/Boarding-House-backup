@@ -45,12 +45,12 @@ A web-based system that helps students — especially new students and those fro
 
 | Role | Can do |
 | --- | --- |
-| **Tenant / Student** (`tenant`) | Register with student/government ID, log in, browse and search rooms |
-| **Landlord** (`landlord`) | Register with government ID, selfie and property details; first listing waits for approval |
+| **Tenant / Student** (`tenant`) | Register, log in, browse rooms (newest first), view details, reserve a room, contact the landlord, follow reservation status and replies |
+| **Landlord** (`landlord`) | Landlord Dashboard: add and manage **their own** boarding houses, rooms, photos, amenities and listing status; approve or reject reservations; answer messages |
 | **Administrator** (`admin`) | Everything in the Admin Dashboard: users, landlords, listings, rooms, bookings, reports |
 | **Super Admin** (`super_admin`) | Everything an admin can do, plus create and manage other administrators |
 
-Role-based access control is enforced on the server for every page and API call. A tenant or landlord who opens `/admin` is redirected to their own home page; the admin API answers `401` (not logged in) or `403` (not an administrator).
+Role-based access control is enforced on the server for every page and API call. A tenant or landlord who opens `/admin` is redirected to their own home page; the admin API answers `401` (not logged in) or `403` (not an administrator). The landlord API (`api/landlord/`) only ever reads or changes the logged-in landlord's own records: another landlord's boarding house, room, photo, reservation or message answers **404 Not found**, so one landlord can never view, edit or delete another landlord's listing.
 
 ---
 
@@ -109,14 +109,50 @@ All relationships use foreign keys. Bookings use `ON DELETE RESTRICT`, so rental
 
 ---
 
+## Landlord Dashboard (`landlord/`)
+
+Landlords log in on the normal login page and land on `landlord/`.
+
+| Section | Features |
+| --- | --- |
+| **Dashboard** | Total boarding houses, total available rooms, total reserved rooms, pending reservations, recent listings, recent reservations |
+| **My Boarding Houses** | Photo, name, barangay, price range, room types, available rooms, status, date added. View (gallery, details, rooms), Edit, Manage Rooms, Update Status, Delete (with confirmation) |
+| **Add Boarding House** | Main + additional photos with previews (JPG/JPEG/PNG/WebP, max 5 MB each); name, landlord/contact name, contact number, email; **barangay dropdown from the `barangays` table** (municipality and province filled in automatically), complete address, landmark, nearby school, distance from school (e.g. "5 minutes walk from SIIT"), Google Maps link, map pin (latitude/longitude, "use my current location", map preview); description, house rules; listing status; rooms |
+| **Rooms** | Room name/number, Single Room (monthly price, vacant/occupied) or Shared Room (price per person, number of occupants, available slots), "how many rooms like this", availability, amenities checklist (Wi-Fi, Bed, Cabinet, Table, Chair, Electric Fan, Air Conditioning, Private/Shared Bathroom, Kitchen, Laundry Area, Parking, Study Area, CCTV, Water Supply, Electricity Included) + custom amenities, description, room photos |
+| **Room Management** | Table of all rooms with filters; add, edit, delete, make available/unavailable, upload or delete room photos |
+| **Reservations** | Pending / Approved / Rejected / Cancelled / Completed; approve or reject with a note to the student. Approving takes the room slots automatically |
+| **Messages** | "Contact Landlord" messages from students; reply (the student sees it in My Reservations) or close |
+| **Profile** | Name, email, contact number, business name, profile photo (shown to students), password |
+
+**Listing status:** *Available* (open for reservations) · *Fully Occupied* (still shown, marked FULL) · *Temporarily Unavailable* (hidden from students) · *Pending Approval* (new listings wait for an administrator while **Settings › Require listing approval** is on; rejected listings go back to pending after the landlord edits them).
+
+A boarding house that already has reservations cannot be deleted (the history is kept); set it to *Temporarily Unavailable* instead.
+
+### Student room listing (`php/browse-rooms.php`)
+
+Loaded from `api/rooms.php`: only rooms of **approved** boarding houses whose status is not *Temporarily Unavailable*. Each card shows the details on the left and a photo gallery (main photo + clickable thumbnails) on the right, stacked on phones, newest first with **Load more**, badges AVAILABLE / RESERVED / FULL. **More Details** shows the gallery, location and map, barangay, rent, room type, availability, amenities, description, house rules, nearby school, distance and the landlord. **Reserve** (student account) asks for confirmation and saves a *Pending* reservation; **Contact Landlord** saves a message for the landlord. The page checks every 30 seconds and offers to refresh when landlords change their listings.
+
+### Adding or changing barangays
+
+The barangay dropdown reads the `barangays` table (Dapa and General Luna are included). Add more in MySQL Workbench:
+
+```sql
+INSERT INTO barangays (name, municipality, province) VALUES ('Barangay Name', 'Del Carmen', 'Surigao del Norte');
+UPDATE barangays SET is_active = 0 WHERE name = 'Old Name';   -- hide one from the list
+```
+
+---
+
 ## Installation (XAMPP + MySQL Workbench)
 
 1. Copy the project to `C:\xampp\htdocs\BHsystem`.
 2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 3. In **MySQL Workbench**, connect to `127.0.0.1:3306` (user `root`), then **File › Run SQL Script…**:
    1. `database/schema.sql` — creates the `bhsystem` database and tables.
-   2. `database/seed.sql` — *optional* demo data (≈90 users, 8 boarding houses in Dapa, Surigao del Norte near SIIT, their rooms and bookings).
+   2. `database/seed.sql` — *optional* demo **accounts** (2 admins, 10 landlords, 72 tenants). It contains **no** boarding houses: landlords add their listings in the Landlord Dashboard.
    (phpMyAdmin › Import works too.)
+
+   **Already have the database and want to keep your accounts?** Run only `database/migrate-landlord-dashboard.sql` instead. It keeps every user, landlord, admin and setting, **removes all boarding houses, rooms, photos records and bookings**, and adds the new tables and columns (barangays, room photos, messages, listing status).
 4. If your MySQL user/password is not `root` with an empty password, copy `security/config.local.example.php` to `security/config.local.php` and edit it. This file is ignored by Git, so passwords never get committed. Environment variables (`BH_DB_HOST`, `BH_DB_USER`, `BH_DB_PASS`, …) also work.
 5. Create your administrator:
    - **With demo data:** log in as `admin@bhrental.local` / `Admin@12345`.
@@ -131,31 +167,32 @@ You still need PHP to run the website, but not the XAMPP Control Panel.
 1. Make sure your MySQL Server is running and you imported `database/schema.sql` and `database/seed.sql` in MySQL Workbench.
 2. Copy `security/config.local.example.php` to `security/config.local.php` and set `BH_DB_PASS` to your MySQL root password.
 3. Double-click **`start-server.bat`**. It finds PHP (on your PATH, or `C:\xampp\php\php.exe`), starts PHP's built-in web server and opens the login page.
-4. Use `http://localhost:8000/html/loginform.html` (admin dashboard: `http://localhost:8000/admin/`). Keep the black window open; close it to stop.
+4. Use `http://localhost:8000/html/loginform.html` (admin dashboard: `http://localhost:8000/admin/`, landlord dashboard: `http://localhost:8000/landlord/`). Keep the black window open; close it to stop.
 
 `router.php` blocks the private folders (`storage`, `security`, `database`) because PHP's built-in server ignores `.htaccess` files.
 
 ### Landing page = live database records
 
-`http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses**, **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** in the Admin Dashboard (and that have at least one room). Add, edit, approve, reject or deactivate a listing in the admin, refresh the landing page, and the change is there. Set a listing's latitude/longitude in the admin so it appears on the SIIT map.
+`http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses**, **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** (not *Temporarily Unavailable*, and with at least one room). Listings are added by landlords in the Landlord Dashboard; a pin on the map comes from the latitude/longitude they set.
 
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Super Admin | `admin@bhrental.local` | `Admin@12345` |
-| Landlord | `landlord1@bhrental.local` | `Demo@12345` |
+| Landlord | `landlord1@bhrental.local` … `landlord10@bhrental.local` | `Demo@12345` |
 | Tenant | `tenant1@bhrental.local` | `Demo@12345` |
 
 Seed dates are relative to the day you import it, so the charts always show recent activity. Re-import it any time to reset the demo.
 
-### Rebuilding the admin CSS (only when you change Tailwind classes)
+### Rebuilding the CSS (only when you change Tailwind classes)
 
-The compiled files are committed, so XAMPP needs no Node.js. If you add new Tailwind classes to `admin/`:
+The compiled files are committed, so XAMPP needs no Node.js. If you add new Tailwind classes:
 
 ```bash
 npm install
-npm run build:admin      # or: npm run watch:admin-css while editing
+npm run build:admin      # admin + landlord dashboards (or: npm run watch:admin-css)
+npm run build:tenant     # Browse Rooms page -> assets/css/tenant.css
 ```
 
 Tailwind and Chart.js are served locally from `admin/assets/`, so the admin dashboard also works without an internet connection.
@@ -177,11 +214,22 @@ BHsystem/
 │       ├── app.js                Router, sidebar, search, notifications, logout
 │       └── pages/                dashboard, users, boarding-houses, rooms, bookings,
 │                                 reports, notifications, activity, settings
+├── landlord/
+│   ├── index.php                 Landlord dashboard shell (landlord role only)
+│   ├── assets/css/landlord.css   Photo pickers, form sections (+ the admin CSS)
+│   └── assets/js/                api.js, ui.js, app.js and pages/ (dashboard, houses,
+│                                 house-form, room-form, rooms, reservations, messages, profile)
 ├── api/
 │   ├── _common.php               JSON responses, validation helpers, error handling
-│   ├── login.php, csrf.php, register-tenant.php, register-landlord.php, rooms.php
+│   ├── _queries.php              Shared query helpers (paging, occupancy)
+│   ├── login.php, csrf.php, register-tenant.php, register-landlord.php
+│   ├── rooms.php, listings.php   Public listings (Browse Rooms, landing page)
+│   ├── reservations.php          Student reservations
+│   ├── inquiries.php             Contact Landlord messages
+│   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)
-├── database/schema.sql, seed.sql
+├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
+├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup
@@ -231,8 +279,6 @@ Before going live: enable HTTPS, use a dedicated MySQL user (not `root`), do **n
 
 ## Roadmap (next phases)
 
-1. **Tenant side on the database** — replace the sample data in `php/room-data.php` with approved listings from MySQL; real search by location, school, price, room type and amenities; room details page.
-2. **Landlord dashboard** — landlords add and edit their own boarding houses, rooms, prices, availability, amenities and photos (the database and validation rules are ready).
-3. **Online booking requests** from tenants (the `bookings` table and admin workflow already exist).
-4. Favorites, messaging, reviews and email notifications.
-5. Payments and rental contracts.
+1. Admin page to manage the barangay list (today: SQL, see above).
+2. Favorites, reviews and email notifications.
+3. Payments and rental contracts.

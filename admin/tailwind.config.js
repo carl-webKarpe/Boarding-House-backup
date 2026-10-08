@@ -1,6 +1,6 @@
-/** Tailwind build for the admin dashboard. Rebuild with: npm run build:admin-css */
+/** Tailwind build for the admin and landlord dashboards. Rebuild with: npm run build:admin-css */
 module.exports = {
-  content: ['./admin/**/*.php', './admin/assets/js/**/*.js'],
+  content: ['./admin/**/*.php', './admin/assets/js/**/*.js', './landlord/**/*.php', './landlord/assets/js/**/*.js'],
   theme: {
     extend: {
       colors: {

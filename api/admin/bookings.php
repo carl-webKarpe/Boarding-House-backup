@@ -46,35 +46,6 @@ function loadBooking(int $id): array {
     return formatBooking($row);
 }
 
-/**
- * Moves one occupant into (+1) or out of (-1) a room inside the current
- * transaction, locking the row so two approvals cannot overbook it.
- */
-function adjustOccupancy(int $roomId, int $delta): void {
-    $pdo = getDb();
-    $stmt = $pdo->prepare('SELECT capacity, occupants, status FROM rooms WHERE id = :id FOR UPDATE');
-    $stmt->execute([':id' => $roomId]);
-    $room = $stmt->fetch();
-    if (!$room) {
-        throw new ApiException('Room not found.', 404);
-    }
-
-    $capacity = (int) $room['capacity'];
-    $occupants = (int) $room['occupants'] + $delta;
-    if ($delta > 0) {
-        if ($room['status'] === 'maintenance') {
-            throw new ApiException('This room is under maintenance and cannot accept tenants.', 409);
-        }
-        if ($occupants > $capacity) {
-            throw new ApiException('This room is already full.', 409);
-        }
-    }
-    $occupants = max(0, $occupants);
-
-    $pdo->prepare('UPDATE rooms SET occupants = :occupants, status = :status WHERE id = :id')
-        ->execute([':occupants' => $occupants, ':status' => roomStatusFor($capacity, $occupants, $room['status']), ':id' => $roomId]);
-}
-
 function validateBookingPayload(array $body, bool $creating): array {
     $rules = [];
     if ($creating) {

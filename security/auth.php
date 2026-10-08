@@ -278,9 +278,15 @@ function registerAccount(string $role, array $data, array $files): array {
             $landlordId = (int) $pdo->lastInsertId();
 
             // The property named during registration becomes the landlord's first listing, waiting for approval.
-            $pdo->prepare('INSERT INTO boarding_houses (landlord_id, name, address, barangay, city, province, contact_number, contact_email, status)
-                VALUES (:landlord_id, :name, :address, :barangay, :city, :province, :contact_number, :contact_email, \'pending\')')
+            // barangay_id links to the barangays list when the typed name matches one.
+            $pdo->prepare('INSERT INTO boarding_houses (landlord_id, name, address, barangay_id, barangay, city, province, contact_name, contact_number, contact_email, status)
+                VALUES (:landlord_id, :name, :address,
+                    (SELECT id FROM barangays WHERE name = :barangay_lookup AND municipality = :city_lookup LIMIT 1),
+                    :barangay, :city, :province, :contact_name, :contact_number, :contact_email, \'pending\')')
                 ->execute([
+                    ':barangay_lookup' => $landlord['barangay'],
+                    ':city_lookup' => $landlord['city'],
+                    ':contact_name' => $fullName,
                     ':landlord_id' => $landlordId,
                     ':name' => $landlord['business_name'],
                     ':address' => $landlord['business_address'],

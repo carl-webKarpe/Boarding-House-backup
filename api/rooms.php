@@ -16,8 +16,9 @@ declare(strict_types=1);
  *   GET api/rooms.php?version=1       fingerprint of the listings, so the page
  *                                     can tell when a landlord changed something
  *
- * Only rooms in APPROVED boarding houses of active landlords are listed, and
- * rooms under maintenance are hidden. Nothing here is hard-coded: every
+ * Only rooms in APPROVED boarding houses of active landlords are listed.
+ * Rooms the landlord marked unavailable and listings set to "Temporarily
+ * Unavailable" are hidden; "Fully Occupied" listings still show, as FULL. Nothing here is hard-coded: every
  * value comes from the database.
  */
 
@@ -43,13 +44,15 @@ const ROOM_BASE_FROM = "FROM rooms r
     JOIN landlords l ON l.id = bh.landlord_id
     JOIN users u ON u.id = l.user_id";
 
-const ROOM_BASE_WHERE = "bh.status = 'approved' AND u.status <> 'disabled' AND r.status <> 'maintenance'";
+const ROOM_BASE_WHERE = "bh.status = 'approved' AND bh.availability_status <> 'temporarily_unavailable'
+    AND u.status <> 'disabled' AND r.status <> 'maintenance'";
 
 const ROOM_SELECT = "SELECT r.id, r.room_number, r.room_type, r.price, r.deposit, r.capacity, r.occupants, r.size_sqm,
     r.description AS room_description, r.status, r.created_at, r.updated_at,
     GREATEST(r.created_at, COALESCE(r.updated_at, r.created_at), COALESCE(bh.updated_at, bh.created_at)) AS last_change,
     bh.id AS house_id, bh.name AS house_name, bh.description AS house_description, bh.address, bh.barangay, bh.city, bh.province,
-    bh.latitude, bh.longitude, bh.nearby_school, bh.contact_number AS house_contact, bh.contact_email AS house_email, bh.house_rules,
+    bh.latitude, bh.longitude, bh.map_url, bh.location_note, bh.distance_note, bh.availability_status AS house_availability,
+    bh.contact_name, bh.nearby_school, bh.contact_number AS house_contact, bh.contact_email AS house_email, bh.house_rules,
     u.id AS landlord_user_id, u.first_name, u.last_name, u.contact_number AS landlord_contact, u.avatar_path,
     l.verification_status,
     (SELECT COALESCE(SUM(b.occupants_count), 0) FROM bookings b WHERE b.room_id = r.id AND b.status = 'pending') AS pending_slots";
@@ -113,7 +116,8 @@ function formatRoom(array $row, array $amenities, array $roomPhotos, array $hous
     $houseId = (int) $row['house_id'];
     $capacity = (int) $row['capacity'];
     $occupants = (int) $row['occupants'];
-    $open = max(0, $capacity - $occupants);
+    // A listing the landlord marked "Fully Occupied" has no open slot, whatever the room counts say.
+    $open = $row['house_availability'] === 'fully_occupied' ? 0 : max(0, $capacity - $occupants);
     $pending = (int) $row['pending_slots'];
     $lat = $row['latitude'] !== null ? (float) $row['latitude'] : null;
     $lng = $row['longitude'] !== null ? (float) $row['longitude'] : null;
@@ -145,10 +149,12 @@ function formatRoom(array $row, array $amenities, array $roomPhotos, array $hous
             'id' => $houseId,
             'name' => $row['house_name'],
             'location' => implode(', ', array_filter([$row['barangay'] ?: $row['address'], $row['city']])),
+            'barangay' => $row['barangay'],
+            'distance_note' => $row['distance_note'],
             'address' => implode(', ', array_unique(array_filter([$row['address'], $row['barangay'], $row['city'], $row['province']]))),
         ],
         'landlord' => [
-            'name' => trim($row['first_name'] . ' ' . $row['last_name']),
+            'name' => $row['contact_name'] ?: trim($row['first_name'] . ' ' . $row['last_name']),
             'verified' => $row['verification_status'] === 'verified',
         ],
     ];
@@ -158,6 +164,8 @@ function formatRoom(array $row, array $amenities, array $roomPhotos, array $hous
             'description' => $row['house_description'],
             'rules' => $row['house_rules'],
             'nearby_school' => $row['nearby_school'],
+            'location_note' => $row['location_note'],
+            'map_url' => $row['map_url'],
             'latitude' => $lat,
             'longitude' => $lng,
         ];
@@ -204,8 +212,8 @@ $params = [];
 
 $search = queryString('q');
 if ($search !== '') {
-    $where[] = '(bh.name LIKE :q1 OR bh.barangay LIKE :q2 OR bh.city LIKE :q3 OR bh.address LIKE :q4)';
-    foreach (['q1', 'q2', 'q3', 'q4'] as $key) {
+    $where[] = '(bh.name LIKE :q1 OR bh.barangay LIKE :q2 OR bh.city LIKE :q3 OR bh.address LIKE :q4 OR bh.nearby_school LIKE :q5)';
+    foreach (['q1', 'q2', 'q3', 'q4', 'q5'] as $key) {
         $params[':' . $key] = likeValue($search);
     }
 }
@@ -222,7 +230,7 @@ if (is_numeric($_GET['max_price'] ?? null) && (float) $_GET['max_price'] > 0) {
 }
 
 if (queryString('available') === '1') {
-    $where[] = 'r.occupants < r.capacity';
+    $where[] = "r.occupants < r.capacity AND bh.availability_status = 'available'";
 }
 
 $orderBy = match (queryString('sort', 'newest')) {
@@ -246,7 +254,7 @@ $rows = $stmt->fetchAll();
 
 [$amenities, $roomPhotos, $housePhotos] = loadRoomExtras(array_column($rows, 'id'), array_column($rows, 'house_id'));
 
-$summary = $pdo->query("SELECT COUNT(*) AS rooms, COALESCE(SUM(r.occupants < r.capacity), 0) AS available, COUNT(DISTINCT bh.id) AS houses, MIN(r.price) AS min_price "
+$summary = $pdo->query("SELECT COUNT(*) AS rooms, COALESCE(SUM(r.occupants < r.capacity AND bh.availability_status = 'available'), 0) AS available, COUNT(DISTINCT bh.id) AS houses, MIN(r.price) AS min_price "
     . ROOM_BASE_FROM . ' WHERE ' . ROOM_BASE_WHERE)->fetch();
 
 jsonResponse(

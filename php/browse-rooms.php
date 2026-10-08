@@ -45,7 +45,7 @@ if ($isLoggedIn) {
 $e = static fn (string $value): string => sanitizeForOutput($value);
 $initial = $e(strtoupper(substr($fullName ?: 'G', 0, 1)));
 $homeForRole = $isLoggedIn ? appUrl(homePathForRole($role)) : '';
-$assetVersion = '20261005';
+$assetVersion = '20261008';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -74,7 +74,9 @@ $assetVersion = '20261005';
   <header class="sticky top-0 z-40 border-b border-brand/10 bg-brand text-white">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
       <a href="../html/index.html" class="flex min-w-0 items-center gap-3">
-        <img src="../Image/logo.png" alt="" class="h-9 w-9 rounded-xl bg-white/10 object-cover" width="36" height="36" />
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lime text-brand" aria-hidden="true">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>
+        </span>
         <span class="truncate font-display text-sm font-semibold leading-tight sm:text-base">
           Boarding House<span class="hidden sm:inline"> Rental System</span>
         </span>
@@ -130,12 +132,12 @@ $assetVersion = '20261005';
       </div>
     </section>
 
-    <div class="sticky top-16 z-30 -mt-6 px-4 sm:px-6 lg:px-8">
+    <div class="relative z-30 -mt-6 px-4 sm:px-6 lg:sticky lg:top-16 lg:px-8">
       <form id="filters" class="mx-auto grid max-w-7xl gap-2 rounded-3xl border border-brand/10 bg-white p-3 shadow-card sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr_auto]" role="search" aria-label="Filter rooms">
         <label class="relative block">
           <span class="sr-only">Search</span>
           <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" name="q" placeholder="Boarding house or barangay" class="field pl-10" autocomplete="off" />
+          <input type="search" name="q" placeholder="Boarding house, barangay or school" class="field pl-10" autocomplete="off" />
         </label>
         <label class="block">
           <span class="sr-only">Room type</span>
@@ -143,8 +145,6 @@ $assetVersion = '20261005';
             <option value="">All room types</option>
             <option value="solo">Single Room</option>
             <option value="shared">Shared Room</option>
-            <option value="dormitory">Bedspace</option>
-            <option value="studio">Studio</option>
           </select>
         </label>
         <label class="block">

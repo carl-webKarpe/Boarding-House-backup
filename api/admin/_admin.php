@@ -13,6 +13,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../_common.php';
+require_once __DIR__ . '/../_queries.php';
 
 apiBootstrap();
 
@@ -53,73 +54,4 @@ function isSuperAdmin(): bool {
 
 function adminLog(string $action, string $description, ?string $entityType = null, ?int $entityId = null): void {
     auditLog($action, $description, adminId(), $entityType, $entityId);
-}
-
-function requireId(string $key = 'id'): int {
-    $id = queryInt($key, 0, 0);
-    if ($id <= 0) {
-        throw new ApiException('A valid id is required.', 400);
-    }
-
-    return $id;
-}
-
-function notFound(string $what): never {
-    throw new ApiException($what . ' not found.', 404);
-}
-
-/**
- * Builds "ORDER BY" from ?sort=&order= using a whitelist of column expressions.
- */
-function orderBy(array $allowed, string $defaultSort, string $defaultOrder = 'desc'): string {
-    $sort = queryString('sort', $defaultSort);
-    $column = $allowed[$sort] ?? $allowed[$defaultSort];
-    $order = strtolower(queryString('order', $defaultOrder)) === 'asc' ? 'ASC' : 'DESC';
-    return " ORDER BY {$column} {$order}";
-}
-
-/**
- * Runs a COUNT(*) and a paged SELECT that share the same FROM/WHERE.
- */
-function pagedQuery(string $select, string $fromWhere, array $params, string $orderBy, array $pagination): array {
-    $pdo = getDb();
-    $countStmt = $pdo->prepare('SELECT COUNT(*) ' . $fromWhere);
-    $countStmt->execute($params);
-    $total = (int) $countStmt->fetchColumn();
-
-    $stmt = $pdo->prepare($select . ' ' . $fromWhere . $orderBy . ' LIMIT ' . (int) $pagination['per_page'] . ' OFFSET ' . (int) $pagination['offset']);
-    $stmt->execute($params);
-
-    return [$stmt->fetchAll(), paginationMeta($total, $pagination)];
-}
-
-function fullName(array $row, string $prefix = ''): string {
-    $name = trim(($row[$prefix . 'first_name'] ?? '') . ' ' . ($row[$prefix . 'last_name'] ?? ''));
-    return $name !== '' ? $name : (string) ($row[$prefix . 'username'] ?? '');
-}
-
-/**
- * Recomputes a room's status from its occupancy unless it is under maintenance.
- */
-function roomStatusFor(int $capacity, int $occupants, string $requested): string {
-    if ($requested === 'maintenance') {
-        return 'maintenance';
-    }
-
-    return $occupants >= $capacity ? 'occupied' : 'available';
-}
-
-function castRow(array $row, array $intFields = [], array $floatFields = []): array {
-    foreach ($intFields as $f) {
-        if (array_key_exists($f, $row) && $row[$f] !== null) {
-            $row[$f] = (int) $row[$f];
-        }
-    }
-    foreach ($floatFields as $f) {
-        if (array_key_exists($f, $row) && $row[$f] !== null) {
-            $row[$f] = (float) $row[$f];
-        }
-    }
-
-    return $row;
 }

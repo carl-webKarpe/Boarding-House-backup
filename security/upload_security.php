@@ -37,6 +37,17 @@ function storeUploadedFile(array $file, string $targetDir, array $allowedMime, s
         return ['success' => false, 'message' => 'Unsupported file type.'];
     }
 
+    // Photos must really be images, and not absurdly large (they are shown in browsers).
+    if (str_starts_with($mime, 'image/')) {
+        $info = @getimagesize($file['tmp_name']);
+        if ($info === false) {
+            return ['success' => false, 'message' => 'The file is not a valid image.'];
+        }
+        if ($info[0] > 8000 || $info[1] > 8000) {
+            return ['success' => false, 'message' => 'The image is too large (maximum 8000 × 8000 pixels).'];
+        }
+    }
+
     if (!is_dir($targetDir) && !@mkdir($targetDir, 0750, true)) {
         return ['success' => false, 'message' => 'Upload folder is not writable.'];
     }
@@ -73,4 +84,55 @@ function storeListingImage(array $file): array {
     }
 
     return $result;
+}
+
+/**
+ * Landlord profile photo, stored under uploads/avatars.
+ */
+function storeAvatarImage(array $file): array {
+    $result = storeUploadedFile($file, BH_UPLOAD_DIR . '/avatars', BH_IMAGE_MIME, 'avatar');
+    if ($result['success']) {
+        $result['path'] = BH_UPLOAD_URL . '/avatars/' . $result['stored_name'];
+    }
+
+    return $result;
+}
+
+/**
+ * Turns $_FILES['x'] (single or multiple "x[]") into a list of single-file arrays.
+ * @return array<int, array{name:string,type:string,tmp_name:string,error:int,size:int}>
+ */
+function uploadedFileList(?array $files): array {
+    if (!$files || !isset($files['name'])) {
+        return [];
+    }
+    if (!is_array($files['name'])) {
+        return ($files['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE ? [] : [$files];
+    }
+
+    $list = [];
+    foreach (array_keys($files['name']) as $i) {
+        if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $list[] = [
+            'name' => $files['name'][$i],
+            'type' => $files['type'][$i],
+            'tmp_name' => $files['tmp_name'][$i],
+            'error' => $files['error'][$i],
+            'size' => $files['size'][$i],
+        ];
+    }
+
+    return $list;
+}
+
+/**
+ * Deletes a photo file only if it was uploaded through the dashboards
+ * (uploads/...). Paths pointing to Image/ or to a web address are left alone.
+ */
+function deleteUploadedImage(string $path): void {
+    if (preg_match('#^' . preg_quote(BH_UPLOAD_URL, '#') . '/(listings|avatars)/([A-Za-z0-9_.-]+)$#', $path, $m)) {
+        @unlink(BH_UPLOAD_DIR . '/' . $m[1] . '/' . $m[2]);
+    }
 }

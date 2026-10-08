@@ -43,8 +43,10 @@ echo.
 echo    Home page : http://localhost:8000/
 echo    Login     : http://localhost:8000/html/loginform.html
 echo    Admin     : http://localhost:8000/admin/
+echo    Landlord  : http://localhost:8000/landlord/
 echo.
 echo  Keep this window open. Press Ctrl+C to stop.
 echo.
 start "" "http://localhost:8000/"
-"%PHP_EXE%" -S localhost:8000 router.php
+REM Larger upload limits so landlords can upload listing photos (5 MB each).
+"%PHP_EXE%" -d upload_max_filesize=8M -d post_max_size=64M -d max_file_uploads=30 -S localhost:8000 router.php

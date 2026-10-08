@@ -134,7 +134,7 @@ switch (requestMethod()) {
 
         $pdo->beginTransaction();
         // Lock the room so two students cannot both take the last slot.
-        $stmt = $pdo->prepare("SELECT r.id, r.room_number, r.capacity, r.occupants, r.status, bh.id AS house_id, bh.name AS house_name, bh.status AS house_status,
+        $stmt = $pdo->prepare("SELECT r.id, r.room_number, r.capacity, r.occupants, r.status, bh.id AS house_id, bh.name AS house_name, bh.status AS house_status, bh.availability_status,
                 u.id AS landlord_user_id, u.status AS landlord_status
             FROM rooms r JOIN boarding_houses bh ON bh.id = r.boarding_house_id
             JOIN landlords l ON l.id = bh.landlord_id JOIN users u ON u.id = l.user_id
@@ -146,7 +146,12 @@ switch (requestMethod()) {
             throw new ApiException('This room is no longer available for reservation.', 409);
         }
 
-        $openSlots = (int) $room['capacity'] - (int) $room['occupants'];
+        if ($room['availability_status'] === 'temporarily_unavailable') {
+            $pdo->rollBack();
+            throw new ApiException('The landlord is not accepting reservations for this boarding house right now.', 409);
+        }
+
+        $openSlots = $room['availability_status'] === 'fully_occupied' ? 0 : (int) $room['capacity'] - (int) $room['occupants'];
         if ($openSlots <= 0) {
             $pdo->rollBack();
             throw new ApiException('Sorry, this room is already full.', 409);
@@ -200,6 +205,12 @@ switch (requestMethod()) {
         $pdo->prepare("UPDATE bookings SET status = 'cancelled', notes = 'Cancelled by the student.' WHERE id = :id AND tenant_id = :tenant AND status = 'pending'")
             ->execute([':id' => $id, ':tenant' => $tenantId]);
         auditLog('booking_cancelled', "Student cancelled reservation {$reservation['code']} ({$reservation['house']['name']})", $tenantId, 'booking', $id);
+        $owner = $pdo->prepare('SELECT l.user_id FROM boarding_houses bh JOIN landlords l ON l.id = bh.landlord_id WHERE bh.id = :house');
+        $owner->execute([':house' => $reservation['house']['id']]);
+        if ($ownerId = (int) $owner->fetchColumn()) {
+            notifyUser($ownerId, 'booking_created', 'Reservation cancelled',
+                "{$reservation['contact_name']} cancelled reservation {$reservation['code']} for room {$reservation['room']['room_number']} at {$reservation['house']['name']}.");
+        }
         jsonResponse(loadReservation($id, $tenantId), 'Reservation cancelled.');
 
     default:

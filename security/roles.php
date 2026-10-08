@@ -29,7 +29,7 @@ function isAdminRole(?string $role): bool {
 function homePathForRole(?string $role): string {
     return match ($role) {
         ROLE_ADMIN, ROLE_SUPER_ADMIN => 'admin/',
-        ROLE_LANDLORD => 'php/dashboard.php',
+        ROLE_LANDLORD => 'landlord/',
         default => 'php/browse-rooms.php',
     };
 }
