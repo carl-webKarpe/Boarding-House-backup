@@ -14,6 +14,10 @@
 -- ============================================================================
 SET NAMES utf8mb4;
 USE bhsystem;
+-- MySQL Workbench turns on "safe update mode", which blocks DELETE without a
+-- WHERE. Switch it off for this script only (restored at the end).
+SET @OLD_SQL_SAFE_UPDATES = @@SQL_SAFE_UPDATES;
+SET SQL_SAFE_UPDATES = 0;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. Remove sample listing data -------------------------------------------
@@ -165,6 +169,7 @@ CREATE TABLE IF NOT EXISTS inquiries (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
+SET SQL_SAFE_UPDATES = @OLD_SQL_SAFE_UPDATES;
 
 INSERT INTO notifications (user_id, audience, type, title, message, link)
 VALUES (NULL, 'admin', 'system', 'Listings were reset', 'Sample boarding houses were removed. Landlords can now add their real listings from the Landlord Dashboard.', '#/boarding-houses');
