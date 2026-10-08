@@ -149,7 +149,7 @@ UPDATE barangays SET is_active = 0 WHERE name = 'Old Name';   -- hide one from t
 2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 3. In **MySQL Workbench**, connect to `127.0.0.1:3306` (user `root`), then **File › Run SQL Script…**:
    1. `database/schema.sql` — creates the `bhsystem` database and tables.
-   2. `database/seed.sql` — *optional* demo **accounts** (2 admins, 10 landlords, 72 tenants). It contains **no** boarding houses: landlords add their listings in the Landlord Dashboard.
+   2. `database/seed.sql` — *optional* demo **accounts** (2 admins, 10 landlords, 1 demo tenant). It contains **no** boarding houses: landlords add their listings in the Landlord Dashboard.
    (phpMyAdmin › Import works too.)
 
    **Already have the database and want to keep your accounts?** Run only `database/migrate-landlord-dashboard.sql` instead. It keeps every user, landlord, admin and setting, **removes all boarding houses, rooms, photos records and bookings**, and adds the new tables and columns (barangays, room photos, messages, listing status).
@@ -182,6 +182,8 @@ You still need PHP to run the website, but not the XAMPP Control Panel.
 | Super Admin | `admin@bhrental.local` | `Admin@12345` |
 | Landlord | `landlord1@bhrental.local` … `landlord10@bhrental.local` | `Demo@12345` |
 | Tenant | `tenant1@bhrental.local` | `Demo@12345` |
+
+Have an older database with the 72 sample tenants? Run `database/cleanup-demo-tenants.sql` to delete them all except `tenant1@bhrental.local`.
 
 Seed dates are relative to the day you import it, so the charts always show recent activity. Re-import it any time to reset the demo.
 
@@ -229,7 +231,7 @@ BHsystem/
 │   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
-├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql
+├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql, cleanup-demo-tenants.sql
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup
