@@ -17,6 +17,8 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/_common.php';
+require_once __DIR__ . '/_queries.php';
+require_once __DIR__ . '/landlord/_rent.php';
 
 apiBootstrap();
 
@@ -64,6 +66,20 @@ function loadReservation(int $id, int $tenantId): array {
 
 function formatReservation(array $row): array {
     $photo = $row['room_photo'] ?: $row['house_photo'];
+
+    // Monthly rent status for students who live there (approved) or lived there (completed).
+    $rent = null;
+    if (in_array($row['status'], ['approved', 'completed'], true)) {
+        $history = paymentHistory($row, paymentsFor([(int) $row['id']])[(int) $row['id']] ?? []);
+        $rent = [
+            'monthly' => monthlyRent($row['room_type'], (float) $row['price'], (int) $row['occupants_count']),
+            'history' => array_map(static fn ($h) => [
+                'label' => $h['label'], 'state' => $h['state'], 'amount_due' => $h['amount_due'], 'amount_paid' => $h['amount_paid'],
+            ], array_slice($history, 0, 6)),
+            'balance' => array_sum(array_map(static fn ($h) => in_array($h['state'], ['unpaid', 'partial', 'overdue'], true) ? max(0, $h['amount_due'] - $h['amount_paid']) : 0, $history)),
+        ];
+    }
+
     return [
         'id' => (int) $row['id'],
         'code' => sprintf('BK-%05d', $row['id']),
@@ -77,6 +93,7 @@ function formatReservation(array $row): array {
         'contact_email' => $row['contact_email'],
         'message' => $row['message'],
         'landlord_note' => $row['notes'],
+        'rent' => $rent,
         'room' => [
             'id' => (int) $row['room_id'],
             'room_number' => $row['room_number'],

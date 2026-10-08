@@ -668,17 +668,101 @@
   }
 
   /* ---------------------------------------------------------------- *
-   * My Reservations & messages (students)
+   * My Reservations, rent, messages and chat (students)
    * ---------------------------------------------------------------- */
-  async function openMyReservations(tab = "reservations") {
+  const RENT_LABELS = { paid: "Paid", partial: "Partly paid", unpaid: "Unpaid", overdue: "Overdue", upcoming: "Not yet due" };
+
+  function rentBlock(rent) {
+    if (!rent) return "";
+    return `
+      <div class="mx-4 mb-3 rounded-2xl bg-cream p-3">
+        <div class="flex items-center justify-between gap-2 text-sm"><span class="font-semibold text-ink">Monthly rent ${peso(rent.monthly)}</span>
+          ${rent.balance > 0 ? `<span class="text-xs font-semibold text-rose-600">Unpaid ${peso(rent.balance)}</span>` : '<span class="text-xs font-semibold text-emerald-700">All paid</span>'}</div>
+        ${rent.history.length ? `<ul class="mt-2 space-y-1">${rent.history.map((h) => `
+          <li class="flex items-center justify-between gap-2 text-xs text-muted"><span>${esc(h.label)} · ${peso(h.amount_paid)} of ${peso(h.amount_due)}</span>${badge(h.state, RENT_LABELS[h.state])}</li>`).join("")}</ul>` : '<p class="mt-1 text-xs text-muted">Rent starts in your move-in month.</p>'}
+      </div>`;
+  }
+
+  async function openMyReservations(tab = "reservations", chatTarget = null) {
     if (!isTenant) { loginPrompt("Seeing your reservations"); return; }
     closeDialogs();
-    const drawer = openDialog({ title: "My Reservations", subtitle: "Status updates from landlords", drawer: true, content: `<div class="space-y-3 p-5">${'<div class="skeleton h-28"></div>'.repeat(3)}</div>` });
+    let timer = null;
+    let chat = chatTarget; // { conversationId?, roomId?, name, photo }
+    let lastId = 0;
+    let conversations = [];
+    const drawer = openDialog({
+      title: "My Reservations",
+      subtitle: "Reservations, rent, messages and chat",
+      drawer: true,
+      content: `<div class="space-y-3 p-5">${'<div class="skeleton h-28"></div>'.repeat(3)}</div>`,
+      onClose: () => { clearInterval(timer); refreshChatBadge(); },
+    });
+
+    const bubble = (m) => `
+      <div class="flex ${m.mine ? "justify-end" : "justify-start"}" data-msg="${m.id}">
+        <div class="max-w-[85%]">
+          <p class="whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-sm ${m.mine ? "bg-brand text-white" : "bg-white text-ink shadow-sm"}">${esc(m.body)}</p>
+          <p class="mt-1 text-[11px] text-muted ${m.mine ? "text-right" : ""}">${esc(timeAgo(m.created_at))}${m.mine && m.read ? " · Seen" : ""}</p>
+        </div>
+      </div>`;
+
+    function appendMessages(list, replace = false) {
+      const box = $("[data-chat-messages]", drawer.el);
+      if (!box) return;
+      if (replace) box.innerHTML = list.length ? list.map(bubble).join("") : `<p class="py-10 text-center text-sm text-muted" data-chat-empty>No messages yet. Say hello!</p>`;
+      else if (list.length) {
+        $("[data-chat-empty]", box)?.remove();
+        box.insertAdjacentHTML("beforeend", list.filter((m) => !$(`[data-msg="${m.id}"]`, box)).map(bubble).join(""));
+      }
+      if (list.length) lastId = Math.max(lastId, ...list.map((m) => m.id));
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function drawThread() {
+      drawer.setContent(`
+        <div class="flex h-full flex-col">
+          <div class="flex items-center gap-3 border-b border-brand/10 bg-white px-4 py-3">
+            <button type="button" class="grid h-9 w-9 place-items-center rounded-full text-brand hover:bg-brand/5" data-chat-back aria-label="Back">${icon("left", "h-5 w-5")}</button>
+            ${chat.photo ? `<img src="${esc(chat.photo)}" alt="" class="h-10 w-10 rounded-2xl object-cover" />` : `<span class="grid h-10 w-10 place-items-center rounded-2xl bg-mint font-semibold text-brand">${esc((chat.name || "?").charAt(0))}</span>`}
+            <div class="min-w-0"><p class="truncate font-semibold text-ink">${esc(chat.name)}</p><p class="text-xs text-muted">Landlord</p></div>
+          </div>
+          <div class="flex-1 space-y-3 overflow-y-auto p-4" data-chat-messages>${chat.conversationId ? '<div class="skeleton h-10 w-1/2"></div>' : '<p class="py-10 text-center text-sm text-muted" data-chat-empty>Write your first message to the landlord.</p>'}</div>
+          <form class="flex items-end gap-2 border-t border-brand/10 bg-white p-3" data-chat-form>
+            <label class="sr-only" for="tenantChatInput">Message</label>
+            <textarea id="tenantChatInput" rows="1" maxlength="2000" class="field max-h-32 resize-none" placeholder="Write a message…" required></textarea>
+            <button type="submit" class="btn-primary shrink-0" aria-label="Send">${icon("message")}<span class="hidden sm:inline">Send</span></button>
+          </form>
+        </div>`);
+      $("#tenantChatInput", drawer.el).focus();
+    }
+
+    async function openThread(target) {
+      chat = target;
+      lastId = 0;
+      drawThread();
+      if (!chat.conversationId) return;
+      try {
+        const res = await api("GET", "chat.php", { query: { conversation_id: chat.conversationId } });
+        appendMessages(res.data, true);
+        refreshChatBadge(res.unread_total);
+      } catch (error) { toast(error.message, "error"); }
+    }
+
+    async function poll() {
+      if (document.visibilityState !== "visible" || !chat?.conversationId || !$("[data-chat-messages]", drawer.el)) return;
+      try {
+        const res = await api("GET", "chat.php", { query: { conversation_id: chat.conversationId, after: lastId } });
+        appendMessages(res.data);
+      } catch { /* next time */ }
+    }
 
     async function draw() {
+      if (tab === "chat" && chat) { openThread(chat); return; }
       try {
-        const [reservations, messages] = await Promise.all([api("GET", "reservations.php"), api("GET", "inquiries.php")]);
-        const tabBtn = (key, label, count) => `<button type="button" role="tab" aria-selected="${tab === key}" data-tab="${key}" class="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${tab === key ? "bg-brand text-white" : "text-brand hover:bg-brand/5"}">${label} <span class="opacity-70">(${count})</span></button>`;
+        const [reservations, messages, chats] = await Promise.all([api("GET", "reservations.php"), api("GET", "inquiries.php"), api("GET", "chat.php")]);
+        conversations = chats.data;
+        refreshChatBadge(chats.unread_total);
+        const tabBtn = (key, label, count, highlight = false) => `<button type="button" role="tab" aria-selected="${tab === key}" data-tab="${key}" class="flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${tab === key ? "bg-brand text-white" : "text-brand hover:bg-brand/5"}">${label} <span class="${highlight ? "rounded-full bg-rose-500 px-1.5 text-[11px] text-white" : "opacity-70"}">${highlight ? count : `(${count})`}</span></button>`;
         const reservationList = reservations.data.length ? reservations.data.map((r) => `
           <article class="overflow-hidden rounded-3xl border border-brand/10 bg-white">
             <div class="flex gap-3 p-4">
@@ -691,7 +775,11 @@
               </div>
             </div>
             ${r.landlord_note ? `<p class="mx-4 mb-3 rounded-2xl bg-mint/60 p-3 text-sm text-brand"><strong>Note:</strong> ${esc(r.landlord_note)}</p>` : ""}
-            ${r.status === "pending" ? `<div class="border-t border-brand/10 px-4 py-2 text-right"><button type="button" class="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700" data-cancel-reservation="${r.id}" data-code="${esc(r.code)}">Cancel reservation</button></div>` : ""}
+            ${rentBlock(r.rent)}
+            <div class="flex flex-wrap justify-end gap-1 border-t border-brand/10 px-4 py-2">
+              ${["pending", "approved", "completed"].includes(r.status) ? `<button type="button" class="btn-ghost btn-sm" data-chat-room="${r.room.id}" data-house="${esc(r.house.name)}">${icon("message")} Chat with landlord</button>` : ""}
+              ${r.status === "pending" ? `<button type="button" class="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 hover:text-rose-700" data-cancel-reservation="${r.id}" data-code="${esc(r.code)}">Cancel reservation</button>` : ""}
+            </div>
           </article>`).join("") : `<div class="rounded-3xl border border-dashed border-brand/20 bg-white p-8 text-center text-sm text-muted">You have no reservations yet. Find a room and press <strong>Reserve</strong>.</div>`;
         const messageList = messages.data.length ? messages.data.map((m) => `
           <article class="rounded-3xl border border-brand/10 bg-white p-4">
@@ -700,11 +788,21 @@
             <p class="mt-1 text-[11px] text-muted">You · ${esc(timeAgo(m.created_at))}</p>
             ${m.reply ? `<p class="mt-3 whitespace-pre-line rounded-2xl bg-mint/70 p-3 text-sm text-brand">${esc(m.reply)}</p><p class="mt-1 text-[11px] text-muted">${esc(m.landlord_name)} · ${esc(timeAgo(m.replied_at))}</p>` : '<p class="mt-2 text-xs text-muted">Waiting for the landlord’s reply.</p>'}
           </article>`).join("") : `<div class="rounded-3xl border border-dashed border-brand/20 bg-white p-8 text-center text-sm text-muted">No messages yet. Use <strong>Contact Landlord</strong> on a room to ask a question.</div>`;
+        const chatList = conversations.length ? conversations.map((c) => `
+          <button type="button" class="flex w-full items-center gap-3 rounded-3xl border border-brand/10 bg-white p-4 text-left transition hover:border-brand/30" data-chat-open="${c.id}">
+            ${c.photo ? `<img src="${esc(c.photo)}" alt="" class="h-11 w-11 rounded-2xl object-cover" />` : `<span class="grid h-11 w-11 place-items-center rounded-2xl bg-mint font-semibold text-brand">${esc((c.name || "?").charAt(0))}</span>`}
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center justify-between gap-2"><span class="truncate font-semibold text-ink">${esc(c.name)}</span><span class="shrink-0 text-[11px] text-muted">${esc(timeAgo(c.last_message_at))}</span></span>
+              <span class="flex items-center justify-between gap-2"><span class="truncate text-xs ${c.unread ? "font-semibold text-ink" : "text-muted"}">${esc(c.last_message ? `${c.last_from_me ? "You: " : ""}${c.last_message}` : c.houses || "")}</span>
+              ${c.unread ? `<span class="rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">${c.unread}</span>` : ""}</span>
+            </span>
+          </button>`).join("") : `<div class="rounded-3xl border border-dashed border-brand/20 bg-white p-8 text-center text-sm text-muted">No chats yet. Press <strong>Chat with landlord</strong> on one of your reservations.</div>`;
 
+        const lists = { reservations: reservationList, messages: messageList, chat: chatList };
         drawer.setContent(`
           <div class="sticky top-0 z-10 bg-cream px-5 pb-2 pt-4"><div class="flex gap-1 rounded-full bg-white p-1 shadow-card" role="tablist">
-            ${tabBtn("reservations", "Reservations", reservations.data.length)}${tabBtn("messages", "Messages", messages.data.length)}</div></div>
-          <div class="space-y-3 p-5 pt-3">${tab === "reservations" ? reservationList : messageList}</div>`);
+            ${tabBtn("reservations", "Reservations", reservations.data.length)}${tabBtn("chat", "Chat", chats.unread_total || conversations.length, chats.unread_total > 0)}${tabBtn("messages", "Questions", messages.data.length)}</div></div>
+          <div class="space-y-3 p-5 pt-3">${lists[tab] || reservationList}</div>`);
       } catch (error) {
         drawer.setContent(`<div class="p-8 text-center text-sm text-rose-700">${esc(error.message)}</div>`);
       }
@@ -712,7 +810,23 @@
 
     drawer.body.addEventListener("click", async (e) => {
       const tabBtn = e.target.closest("[data-tab]");
-      if (tabBtn) { tab = tabBtn.dataset.tab; draw(); return; }
+      if (tabBtn) { tab = tabBtn.dataset.tab; chat = null; draw(); return; }
+      if (e.target.closest("[data-chat-back]")) { tab = "chat"; chat = null; draw(); return; }
+      const openChat = e.target.closest("[data-chat-open]");
+      if (openChat) {
+        const c = conversations.find((x) => String(x.id) === openChat.dataset.chatOpen);
+        tab = "chat";
+        openThread({ conversationId: c.id, name: c.name, photo: c.photo });
+        return;
+      }
+      const roomChat = e.target.closest("[data-chat-room]");
+      if (roomChat) {
+        tab = "chat";
+        const existing = conversations.find((c) => (c.houses || "").split(", ").includes(roomChat.dataset.house));
+        openThread(existing ? { conversationId: existing.id, name: existing.name, photo: existing.photo }
+          : { roomId: Number(roomChat.dataset.chatRoom), name: `Landlord of ${roomChat.dataset.house}`, photo: null });
+        return;
+      }
       const cancel = e.target.closest("[data-cancel-reservation]");
       if (cancel) {
         const ok = await confirmBox({ title: "Cancel this reservation?", message: `Reservation ${cancel.dataset.code} will be cancelled and the landlord will be told.`, confirmText: "Cancel reservation", danger: true });
@@ -725,7 +839,50 @@
         } catch (error) { toast(error.message, "error"); }
       }
     });
-    draw();
+
+    drawer.body.addEventListener("submit", async (e) => {
+      if (!e.target.matches("[data-chat-form]")) return;
+      e.preventDefault();
+      const input = $("#tenantChatInput", drawer.el);
+      const text = input.value.trim();
+      if (!text) return;
+      const button = $('[type="submit"]', e.target);
+      try {
+        const res = await withBusy(button, () => api("POST", "chat.php", { data: chat.conversationId ? { conversation_id: chat.conversationId, body: text } : { room_id: chat.roomId, body: text } }), "");
+        input.value = "";
+        if (!chat.conversationId) {
+          await openThread({ conversationId: res.conversation.id, name: res.conversation.name, photo: res.conversation.photo });
+        } else {
+          appendMessages([res.data]);
+        }
+      } catch (error) { toast(error.message, "error"); }
+      $("#tenantChatInput", drawer.el)?.focus();
+    });
+    drawer.body.addEventListener("keydown", (e) => {
+      if (e.target.id === "tenantChatInput" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.target.form.requestSubmit(); }
+    });
+
+    timer = setInterval(poll, 5000);
+    if (chat) openThread(chat); else draw();
+  }
+
+  /** Red dot with the number of unread chat messages on "My Reservations". */
+  async function refreshChatBadge(count) {
+    if (!isTenant) return;
+    if (count === undefined) {
+      try { count = (await api("GET", "chat.php")).unread_total; } catch { return; }
+    }
+    $$("header [data-open-reservations]").forEach((btn) => {
+      let dot = $("[data-chat-dot]", btn);
+      if (!dot) {
+        btn.classList.add("relative");
+        btn.insertAdjacentHTML("beforeend", '<span data-chat-dot class="absolute -right-0.5 -top-0.5 hidden min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white"></span>');
+        dot = $("[data-chat-dot]", btn);
+      }
+      dot.textContent = count > 9 ? "9+" : String(count);
+      dot.classList.toggle("hidden", !count);
+      dot.title = count ? `${count} unread chat message${count === 1 ? "" : "s"}` : "";
+    });
   }
 
   /* ---------------------------------------------------------------- *
@@ -764,7 +921,10 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("room")) openDetails(Number(params.get("room")));
     if (params.get("reservations") === "1") openMyReservations();
+    if (params.get("chat") === "1") openMyReservations("chat");
   });
+  refreshChatBadge();
+  setInterval(() => { if (document.visibilityState === "visible") refreshChatBadge(); }, POLL_MS);
   checkForUpdates();
   setInterval(checkForUpdates, POLL_MS);
 })();

@@ -27,7 +27,10 @@ const NAV = [
     title: 'Students',
     items: [
       { path: 'reservations', label: 'Reservations', icon: 'calendar', badge: 'reservations' },
-      { path: 'messages', label: 'Messages', icon: 'message', badge: 'messages' },
+      { path: 'tenants', label: 'My Tenants', icon: 'users' },
+      { path: 'payments', label: 'Payments', icon: 'wallet', badge: 'payments' },
+      { path: 'chat', label: 'Chat', icon: 'chat', badge: 'chat' },
+      { path: 'messages', label: 'Inquiries', icon: 'message', badge: 'messages' },
     ],
   },
   {
@@ -43,16 +46,19 @@ const PAGES = {
   'edit-house': () => import('./pages/house-form.js'),
   rooms: () => import('./pages/rooms.js'),
   reservations: () => import('./pages/reservations.js'),
+  tenants: () => import('./pages/tenants.js'),
+  payments: () => import('./pages/payments.js'),
+  chat: () => import('./pages/chat.js'),
   messages: () => import('./pages/messages.js'),
   profile: () => import('./pages/profile.js'),
 };
 
 const TITLES = { ...Object.fromEntries(NAV.flatMap((s) => s.items).map((i) => [i.path, i.label])), 'edit-house': 'Edit Boarding House' };
 const NAV_ALIAS = { 'edit-house': 'houses' };
-const NOTIFICATION_LINKS = { booking_created: '#/reservations', inquiry: '#/messages', listing_status: '#/houses', account: '#/profile' };
+const NOTIFICATION_LINKS = { booking_created: '#/reservations', inquiry: '#/messages', listing_status: '#/houses', account: '#/profile', chat: '#/chat' };
 
 const view = document.getElementById('view');
-const badges = { reservations: 0, messages: 0, notifications: 0 };
+const badges = { reservations: 0, messages: 0, payments: 0, chat: 0, notifications: 0 };
 
 let currentPath = null;
 let currentCleanup = null;
@@ -85,6 +91,9 @@ async function renderRoute() {
 
   if (typeof currentCleanup === 'function') currentCleanup();
   currentCleanup = null;
+  // Dialogs belong to the page they were opened on.
+  $$('#modalRoot .modal-backdrop').forEach((el) => el.remove());
+  document.body.style.overflow = '';
   currentPath = path;
   highlightNav(NAV_ALIAS[path] || path);
   closeSidebar();
@@ -265,6 +274,8 @@ async function refreshBadges() {
     const [stats, notifications] = await Promise.all([api.stats(), api.notifications.list({ per_page: 1 })]);
     updateBadge('reservations', stats.cards.pending_reservations);
     updateBadge('messages', stats.cards.unread_messages);
+    updateBadge('payments', stats.cards.unpaid_this_month);
+    updateBadge('chat', stats.cards.unread_chat);
     updateBadge('notifications', notifications.unread);
   } catch { /* badges are optional */ }
 }

@@ -121,7 +121,10 @@ Landlords log in on the normal login page and land on `landlord/`.
 | **Rooms** | Room name/number, Single Room (monthly price, vacant/occupied) or Shared Room (price per person, number of occupants, available slots), "how many rooms like this", availability, amenities checklist (Wi-Fi, Bed, Cabinet, Table, Chair, Electric Fan, Air Conditioning, Private/Shared Bathroom, Kitchen, Laundry Area, Parking, Study Area, CCTV, Water Supply, Electricity Included) + custom amenities, description, room photos |
 | **Room Management** | Table of all rooms with filters; add, edit, delete, make available/unavailable, upload or delete room photos |
 | **Reservations** | Pending / Approved / Rejected / Cancelled / Completed; approve or reject with a note to the student. Approving takes the room slots automatically |
-| **Messages** | "Contact Landlord" messages from students; reply (the student sees it in My Reservations) or close |
+| **My Tenants** | Current and former boarders (approved reservations): room, persons, move-in date, monthly rent, this month's status (Paid / Partly paid / Unpaid / Overdue), unpaid balance, month-by-month payment history, record payment, chat, move out |
+| **Payments** | Pick a month: expected rent, collected, still unpaid, fully paid count; record or edit each tenant's payment (amount, date, Cash / GCash / Bank, reference, note), remove a wrong record, CSV export. Shared room rent = price per person × persons |
+| **Chat** | Two-way chat with tenants (new messages appear automatically). Students read and reply in Browse Rooms › My Reservations › Chat |
+| **Inquiries** | "Contact Landlord" questions from students and visitors; reply (the student sees it in My Reservations) or close |
 | **Profile** | Name, email, contact number, business name, profile photo (shown to students), password |
 
 **Listing status:** *Available* (open for reservations) · *Fully Occupied* (still shown, marked FULL) · *Temporarily Unavailable* (hidden from students) · *Pending Approval* (new listings wait for an administrator while **Settings › Require listing approval** is on; rejected listings go back to pending after the landlord edits them).
@@ -152,7 +155,7 @@ UPDATE barangays SET is_active = 0 WHERE name = 'Old Name';   -- hide one from t
    2. `database/seed.sql` — *optional* demo **accounts** (2 admins, 10 landlords, 1 demo tenant). It contains **no** boarding houses: landlords add their listings in the Landlord Dashboard.
    (phpMyAdmin › Import works too.)
 
-   **Already have the database and want to keep your accounts?** Run only `database/migrate-landlord-dashboard.sql` instead. It keeps every user, landlord, admin and setting, **removes all boarding houses, rooms, photos records and bookings**, and adds the new tables and columns (barangays, room photos, messages, listing status).
+   **Already have the database and want to keep your accounts?** Run only `database/migrate-landlord-dashboard.sql` instead (and then `database/migrate-tenants-payments-chat.sql`). It keeps every user, landlord, admin and setting, **removes all boarding houses, rooms, photos records and bookings**, and adds the new tables and columns (barangays, room photos, messages, listing status).
 4. If your MySQL user/password is not `root` with an empty password, copy `security/config.local.example.php` to `security/config.local.php` and edit it. This file is ignored by Git, so passwords never get committed. Environment variables (`BH_DB_HOST`, `BH_DB_USER`, `BH_DB_PASS`, …) also work.
 5. Create your administrator:
    - **With demo data:** log in as `admin@bhrental.local` / `Admin@12345`.
@@ -228,10 +231,12 @@ BHsystem/
 │   ├── rooms.php, listings.php   Public listings (Browse Rooms, landing page)
 │   ├── reservations.php          Student reservations
 │   ├── inquiries.php             Contact Landlord messages
+│   ├── chat.php, _chat.php       Landlord <-> tenant chat (student side + shared logic)
 │   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
-├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql, cleanup-demo-tenants.sql
+├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql,
+│   migrate-tenants-payments-chat.sql, cleanup-demo-tenants.sql
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup

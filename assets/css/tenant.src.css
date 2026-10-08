@@ -34,6 +34,10 @@
   .badge-replied { @apply bg-emerald-100 text-emerald-800; }
   .badge-new, .badge-read { @apply bg-slate-100 text-slate-600; }
   .badge-closed { @apply bg-slate-100 text-slate-500; }
+  .badge-paid { @apply bg-emerald-100 text-emerald-800; }
+  .badge-partial { @apply bg-amber-100 text-amber-800; }
+  .badge-unpaid, .badge-overdue { @apply bg-rose-100 text-rose-700; }
+  .badge-upcoming { @apply bg-slate-100 text-slate-600; }
 
   .chip { @apply inline-flex items-center gap-1.5 rounded-full bg-mint/70 px-2.5 py-1 text-xs font-medium text-brand; }
 

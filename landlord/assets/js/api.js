@@ -122,6 +122,24 @@ export const api = {
     close: (id) => request('PUT', 'messages.php', { query: { id, action: 'close' }, body: {} }),
   },
 
+  tenants: {
+    list: (query = {}) => request('GET', 'tenants.php', { query }),
+    get: (id) => request('GET', 'tenants.php', { query: { id } }).then((r) => r.data),
+  },
+
+  payments: {
+    list: (query = {}) => request('GET', 'payments.php', { query }),
+    save: (body) => request('POST', 'payments.php', { body }),
+    remove: (id) => request('DELETE', 'payments.php', { query: { id } }),
+  },
+
+  chat: {
+    list: () => request('GET', 'chat.php'),
+    contacts: () => request('GET', 'chat.php', { query: { type: 'contacts' } }).then((r) => r.data),
+    messages: (conversationId, after = 0) => request('GET', 'chat.php', { query: { conversation_id: conversationId, after } }),
+    send: (body) => request('POST', 'chat.php', { body }),
+  },
+
   profile: {
     get: () => request('GET', 'profile.php').then((r) => r.data),
     save: (body) => request('PUT', 'profile.php', { body }),

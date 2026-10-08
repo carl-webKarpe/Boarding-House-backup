@@ -71,8 +71,8 @@ async function openMessage(id, list) {
 
 export async function render(view, ctx) {
   createListPage(view, ctx, {
-    title: 'Messages',
-    description: 'Questions students sent with "Contact Landlord" on your listings.',
+    title: 'Inquiries',
+    description: 'Questions students and visitors sent with "Contact Landlord" on your listings. For ongoing conversations with your tenants, use Chat.',
     tabKey: 'status',
     tabs: (c) => [
       { value: '', label: 'All', count: c.all_messages },

@@ -9,6 +9,8 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/_landlord.php';
+require_once __DIR__ . '/_rent.php';
+require_once __DIR__ . '/../_chat.php';
 
 requireMethod('GET');
 
@@ -36,6 +38,19 @@ $pending->execute($me);
 $unread = $pdo->prepare("SELECT COUNT(*) FROM inquiries WHERE landlord_user_id = :me AND status = 'new'");
 $unread->execute([':me' => landlordUserId()]);
 
+// Boarders and how many still owe this month's rent.
+$boarders = $pdo->prepare(BOARDER_SELECT . ' ' . BOARDER_FROM . " WHERE bh.landlord_id = :landlord AND b.status = 'approved'");
+$boarders->execute($me);
+$boarderRows = $boarders->fetchAll();
+$boarderPayments = paymentsFor(array_column($boarderRows, 'id'));
+$unpaidThisMonth = 0;
+foreach ($boarderRows as $row) {
+    $state = paymentState($boarderPayments[(int) $row['id']][date('Y-m-01')] ?? null, date('Y-m-01'), boarderStartMonth($row));
+    if (in_array($state, ['unpaid', 'partial'], true)) {
+        $unpaidThisMonth++;
+    }
+}
+
 $recentHouses = $pdo->prepare("SELECT bh.id, bh.name, bh.barangay, bh.city, bh.status, bh.availability_status, bh.created_at,
         (SELECT COUNT(*) FROM rooms r WHERE r.boarding_house_id = bh.id) AS room_count,
         (SELECT MIN(r.price) FROM rooms r WHERE r.boarding_house_id = bh.id) AS min_price,
@@ -60,6 +75,9 @@ jsonResponse([
         'open_slots' => $r['open_slots'],
         'pending_reservations' => (int) $pending->fetchColumn(),
         'unread_messages' => (int) $unread->fetchColumn(),
+        'tenants' => count($boarderRows),
+        'unpaid_this_month' => $unpaidThisMonth,
+        'unread_chat' => chatUnread(landlordUserId()),
     ],
     'recent_listings' => array_map(static function ($row) {
         $row = castRow($row, ['id', 'room_count'], ['min_price']);
