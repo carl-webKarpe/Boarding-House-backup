@@ -1,0 +1,13 @@
+{
+    "name": "bhsystem/boarding-house-rental-system",
+    "description": "Boarding House Rental System - PHP dependencies (PHPMailer for the Gmail verification codes).",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "vendor-dir": "security/vendor",
+        "optimize-autoloader": true
+    }
+}

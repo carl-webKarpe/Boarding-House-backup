@@ -17,6 +17,7 @@ if (!$result['success']) {
 }
 
 jsonResponse([
+    'requires_verification' => !empty($result['requires_verification']),
     'username' => $result['username'],
     'name' => $result['name'],
     'role' => $result['role'],

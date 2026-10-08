@@ -178,6 +178,17 @@ You still need PHP to run the website, but not the XAMPP Control Panel.
 
 `http://localhost:8000/` opens the public landing page (`html/index.html`). Its **Featured Boarding Houses**, **Boarding Houses Near SIIT** map and statistics are loaded from `api/listings.php`, which returns only boarding houses an administrator has **approved** (not *Temporarily Unavailable*, and with at least one room). Listings are added by landlords in the Landlord Dashboard; a pin on the map comes from the latitude/longitude they set.
 
+### Super Admin login with a Gmail code (two-step verification)
+
+After the correct password, the **Super Admin** gets a 6-digit code by email (Gmail + PHPMailer) and must enter it on `php/verify-login.php`. The code expires after 10 minutes, 5 wrong tries cancel it, and "Send a new code" waits 60 seconds. Other roles log in as before.
+
+1. **Install PHPMailer with Composer** (once): install Composer from https://getcomposer.org, then in the project folder run `composer install`. The library goes to `security/vendor/` (protected, not uploaded to Git).
+2. **Gmail App Password:** turn on 2-Step Verification in the Gmail account, then create an App Password at https://myaccount.google.com/apppasswords.
+3. Copy `security/mail.local.example.php` to `security/mail.local.php` and fill in `username`, `password` (the App Password) and `from_email` (same Gmail address). This file is ignored by Git.
+4. Make sure the Super Admin account's email is a **real inbox you can open** (Admin › Settings › My profile) — the code is sent there.
+
+While `security/mail.local.php` is missing, the code step is skipped (a warning is written to `storage/app.log`), so you can never be locked out: if email stops working, rename that file to log in, then fix it.
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |

@@ -17,7 +17,7 @@ $blocked = '#^/(storage|security|database|node_modules|\.git)(/|$)#i';
 if (preg_match($blocked, $path)
     || preg_match('#^/uploads/.*\.(php|phtml|phar)$#i', $path)
     || preg_match('#(^|/)\.#', $path)
-    || in_array(basename($path), ['router.php', 'package.json', 'package-lock.json'], true)) {
+    || in_array(basename($path), ['router.php', 'package.json', 'package-lock.json', 'composer.json', 'composer.lock', 'tenant.tailwind.config.js'], true)) {
     http_response_code(403);
     echo 'Forbidden';
     return true;

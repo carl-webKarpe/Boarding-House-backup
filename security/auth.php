@@ -12,6 +12,7 @@ require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/rate_limit.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/upload_security.php';
+require_once __DIR__ . '/two_factor.php';
 
 const BH_LOGIN_FAILURES_PER_ACCOUNT = 10;
 const BH_LOGIN_FAILURES_PER_IP = 100;
@@ -70,7 +71,7 @@ function loginUser(string $email, string $password): array {
             return ['success' => false, 'status' => 403, 'message' => 'This account has been disabled. Please contact the administrator.'];
         }
 
-        $updates = 'failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW()';
+        $updates = 'failed_login_attempts = 0, locked_until = NULL';
         $params = [':id' => $user['id']];
         if (password_needs_rehash((string) $user['password_hash'], PASSWORD_DEFAULT)) {
             $updates .= ', password_hash = :password_hash';
@@ -79,29 +80,57 @@ function loginUser(string $email, string $password): array {
         $pdo->prepare("UPDATE users SET {$updates} WHERE id = :id")->execute($params);
         clearRateLimit('login', $accountKey);
 
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = (int) $user['id'];
-        $_SESSION['username'] = (string) $user['username'];
-        $_SESSION['email'] = (string) $user['email'];
-        $_SESSION['role'] = (string) $user['role'];
-        $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']) ?: (string) $user['username'];
-        $_SESSION['is_logged_in'] = true;
-        unset($_SESSION['csrf_token']);
+        // Super Admin: the password is only step 1; a code is emailed (security/two_factor.php).
+        if (twoFactorRequiredFor((string) $user['role'])) {
+            $sent = startTwoFactorLogin($user);
+            if (!$sent['success']) {
+                return $sent;
+            }
+            return [
+                'success' => true,
+                'message' => $sent['message'],
+                'requires_verification' => true,
+                'username' => (string) $user['username'],
+                'name' => trim($user['first_name'] . ' ' . $user['last_name']) ?: (string) $user['username'],
+                'role' => '',
+                'redirect' => 'php/verify-login.php',
+            ];
+        }
 
-        auditLog('login', roleLabel($user['role']) . ' logged in: ' . $_SESSION['full_name'], (int) $user['id'], 'user', (int) $user['id']);
-
-        return [
-            'success' => true,
-            'message' => 'Login successful.',
-            'username' => (string) $user['username'],
-            'name' => $_SESSION['full_name'],
-            'role' => (string) $user['role'],
-            'redirect' => homePathForRole((string) $user['role']),
-        ];
+        return completeLogin($user);
     } catch (Throwable $e) {
         writeLog('Login error: ' . $e->getMessage(), 'ERROR');
         return ['success' => false, 'status' => 503, 'message' => 'Login is unavailable right now. Please try again later.'];
     }
+}
+
+/**
+ * Logs the session in as $user (after the password, and the emailed code
+ * when one is required). Returns the login API response.
+ */
+function completeLogin(array $user, bool $verifiedByEmail = false): array {
+    getDb()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = :id')->execute([':id' => $user['id']]);
+
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int) $user['id'];
+    $_SESSION['username'] = (string) $user['username'];
+    $_SESSION['email'] = (string) $user['email'];
+    $_SESSION['role'] = (string) $user['role'];
+    $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']) ?: (string) $user['username'];
+    $_SESSION['is_logged_in'] = true;
+    unset($_SESSION['csrf_token'], $_SESSION['pending_2fa']);
+
+    auditLog('login', roleLabel($user['role']) . ' logged in' . ($verifiedByEmail ? ' (email code verified)' : '') . ': ' . $_SESSION['full_name'],
+        (int) $user['id'], 'user', (int) $user['id']);
+
+    return [
+        'success' => true,
+        'message' => 'Login successful.',
+        'username' => (string) $user['username'],
+        'name' => $_SESSION['full_name'],
+        'role' => (string) $user['role'],
+        'redirect' => homePathForRole((string) $user['role']),
+    ];
 }
 
 /**

@@ -360,7 +360,7 @@ function initLoginForm() {
       }
 
       const account = data.data || {};
-      showToast(`Welcome back, ${account.name || account.username || ""}!`, "success");
+      showToast(account.requires_verification ? (data.message || "We sent a code to your email.") : `Welcome back, ${account.name || account.username || ""}!`, "success");
       form.reset();
       if (rememberMe.checked) {
         emailInput.value = localStorage.getItem("bhrs-remember-email") || "";

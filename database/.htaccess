@@ -1,0 +1,2 @@
+# Private files: never served to browsers (only PHP includes them).
+Require all denied

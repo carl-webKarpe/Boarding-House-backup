@@ -15,6 +15,7 @@ USE bhsystem;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS login_codes;
 DROP TABLE IF EXISTS chat_messages;
 DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS rent_payments;
@@ -320,6 +321,23 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   KEY idx_chat_conversation (conversation_id, id),
   CONSTRAINT fk_chat_conversation FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
   CONSTRAINT fk_chat_sender FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- login_codes: 6-digit codes emailed to the Super Admin at login (hash only).
+-- (security/two_factor.php also creates this table automatically.)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS login_codes (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  code_hash VARCHAR(255) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  used_at DATETIME NULL,
+  ip_address VARCHAR(45) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_login_codes_user (user_id, created_at),
+  CONSTRAINT fk_login_codes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
