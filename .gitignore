@@ -13,3 +13,4 @@ node_modules/
 # Composer packages (run: composer install) and the Gmail settings with the app password
 security/vendor/
 security/mail.local.php
+security/oauth.local.php

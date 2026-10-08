@@ -16,6 +16,7 @@ USE bhsystem;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS login_codes;
+DROP TABLE IF EXISTS social_logins;
 DROP TABLE IF EXISTS chat_messages;
 DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS rent_payments;
@@ -321,6 +322,23 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   KEY idx_chat_conversation (conversation_id, id),
   CONSTRAINT fk_chat_conversation FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
   CONSTRAINT fk_chat_sender FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- social_logins: Google / Facebook accounts linked to a user ("Continue with Google").
+-- (security/oauth.php also creates this table automatically.)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS social_logins (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  provider ENUM('google', 'facebook') NOT NULL,
+  provider_user_id VARCHAR(191) NOT NULL,
+  email VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME NULL,
+  UNIQUE KEY uq_social_provider_user (provider, provider_user_id),
+  KEY idx_social_user (user_id),
+  CONSTRAINT fk_social_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

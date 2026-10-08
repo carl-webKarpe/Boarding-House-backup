@@ -189,6 +189,24 @@ After the correct password, the **Super Admin** gets a 6-digit code by email (Gm
 
 Check the setup any time with `php setup/check-mail.php` (add your Gmail address to also send a test email). While `security/mail.local.php` is missing, the code step is skipped (a warning is written to `storage/app.log`), so you can never be locked out: if email stops working, rename that file to log in, then fix it.
 
+### Continue with Google / Facebook
+
+The Google and Facebook buttons on the login page use OAuth 2.0 (`php/oauth.php` → provider → `php/oauth-callback.php`):
+
+- a Google/Facebook account seen before → logs in;
+- an existing account with the same (verified) email → the social account is linked and it logs in;
+- a new person → a **Student (tenant)** account is created (landlords still register with the landlord form because they upload IDs);
+- the Super Admin still has to enter the emailed code.
+
+Setup:
+1. `composer install` (adds `composer/ca-bundle`, so HTTPS to Google/Facebook works on XAMPP too).
+2. Copy `security/oauth.local.example.php` to `security/oauth.local.php` (ignored by Git) and paste the keys:
+   - **Google:** https://console.cloud.google.com/apis/credentials → Create credentials → OAuth client ID → Web application.
+   - **Facebook:** https://developers.facebook.com/apps → Create app → Facebook Login.
+3. In both consoles add the redirect URL `http://localhost:8000/php/oauth-callback.php` (or `http://localhost/BHsystem/php/oauth-callback.php` on XAMPP Apache).
+
+A provider without keys shows "not set up yet" when its button is clicked.
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |
@@ -243,6 +261,7 @@ BHsystem/
 │   ├── reservations.php          Student reservations
 │   ├── inquiries.php             Contact Landlord messages
 │   ├── chat.php, _chat.php       Landlord <-> tenant chat (student side + shared logic)
+│   └── verify-login.php          Super Admin email code (step 2 of the login)
 │   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)

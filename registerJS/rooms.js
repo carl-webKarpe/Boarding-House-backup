@@ -922,6 +922,10 @@
     if (params.get("room")) openDetails(Number(params.get("room")));
     if (params.get("reservations") === "1") openMyReservations();
     if (params.get("chat") === "1") openMyReservations("chat");
+    if (params.get("welcome") === "1") {
+      toast("Welcome! Your student account is ready. You can now reserve rooms and chat with landlords.");
+      history.replaceState(null, "", window.location.pathname);
+    }
   });
   refreshChatBadge();
   setInterval(() => { if (document.visibilityState === "visible") refreshChatBadge(); }, POLL_MS);

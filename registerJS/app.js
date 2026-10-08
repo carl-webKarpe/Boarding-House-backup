@@ -276,6 +276,13 @@ function initLoginForm() {
   const form = document.getElementById("loginForm");
   if (!form) return;
 
+  // Message from "Continue with Google / Facebook" (php/oauth-callback.php)
+  const oauthError = new URLSearchParams(window.location.search).get("oauth_error");
+  if (oauthError) {
+    setTimeout(() => showToast(oauthError.slice(0, 300), "error"), 300);
+    history.replaceState(null, "", window.location.pathname);
+  }
+
   const emailInput = document.getElementById("email");
   const emailError = document.getElementById("emailError");
   const passwordInput = document.getElementById("password");
