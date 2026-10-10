@@ -207,6 +207,15 @@ Setup:
 
 A provider without keys shows "not set up yet" when its button is clicked.
 
+### Putting it online (InfinityFree or other PHP hosting)
+
+1. Create the hosting account and a MySQL database in its control panel (note the host, database name, user and password).
+2. In the host's **phpMyAdmin**: select your database → **Import** → `database/hosting-import.sql` (made by `php setup/make-hosting-sql.php`; it has no `CREATE DATABASE`/`USE` lines, which shared hosts refuse).
+3. Upload the project into `htdocs` with FTP (FileZilla), **including `security/vendor/`** and **without** `.git` and `node_modules`.
+4. Create `security/config.local.php` on the host with the hosting database details.
+5. Free hosts usually block Gmail SMTP: leave out `security/mail.local.php` there (the Super Admin then logs in without the code).
+6. Change the demo passwords, and turn on the free SSL (https).
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |
@@ -265,7 +274,7 @@ BHsystem/
 │   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
-├── database/schema.sql, seed.sql, migrate-landlord-dashboard.sql,
+├── database/schema.sql, seed.sql, hosting-import.sql, migrate-landlord-dashboard.sql,
 │   migrate-tenants-payments-chat.sql, cleanup-demo-tenants.sql
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
