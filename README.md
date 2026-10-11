@@ -328,3 +328,5 @@ Before going live: enable HTTPS, use a dedicated MySQL user (not `root`), do **n
 1. Admin page to manage the barangay list (today: SQL, see above).
 2. Favorites, reviews and email notifications.
 3. Payments and rental contracts.
+#   b h r e n t a l  
+ 
