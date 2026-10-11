@@ -50,7 +50,10 @@ define('BH_DB_CHARSET', 'utf8mb4');
 define('BH_APP_NAME', 'Boarding House Rental System');
 define('BH_APP_DEBUG', bhConfig('BH_APP_DEBUG', '0') === '1');
 define('BH_SESSION_NAME', 'BHSESSID');
-define('BH_SESSION_IDLE_MINUTES', 30);
+// No automatic logout for inactivity: a login lasts until Logout or until the
+// browser is closed. The server keeps an unused login for at most this long.
+define('BH_SESSION_MAX_DAYS', 7);
+define('BH_SESSION_DIR', BH_SYSTEM_ROOT . '/storage/sessions');
 define('BH_STORAGE_DIR', BH_SYSTEM_ROOT . '/storage');
 define('BH_LOG_FILE', BH_STORAGE_DIR . '/app.log');
 define('BH_RATE_LIMIT_FILE_DIR', BH_STORAGE_DIR);

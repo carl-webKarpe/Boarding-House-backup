@@ -25,17 +25,15 @@ function startSecureSession(): void {
         'samesite' => 'Lax',
     ]);
     ini_set('session.use_strict_mode', '1');
-    ini_set('session.gc_maxlifetime', (string) (BH_SESSION_IDLE_MINUTES * 60));
-    session_start();
-
-    // Log out sessions that have been idle for too long.
-    $now = time();
-    if (!empty($_SESSION['user_id']) && isset($_SESSION['last_activity'])
-        && ($now - (int) $_SESSION['last_activity']) > BH_SESSION_IDLE_MINUTES * 60) {
-        $_SESSION = [];
-        session_regenerate_id(true);
+    ini_set('session.gc_maxlifetime', (string) (BH_SESSION_MAX_DAYS * 86400));
+    // Own folder, so the host's cleanup of its shared session folder (often
+    // every 24 minutes) does not log people out early.
+    if (is_dir(BH_SESSION_DIR) || @mkdir(BH_SESSION_DIR, 0700, true)) {
+        if (is_writable(BH_SESSION_DIR)) {
+            session_save_path(BH_SESSION_DIR);
+        }
     }
-    $_SESSION['last_activity'] = $now;
+    session_start();
 }
 
 function regenerateSession(): void {
