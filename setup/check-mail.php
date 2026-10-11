@@ -24,21 +24,26 @@ $problems = 0;
 
 echo "\nSuper Admin email code - setup check\n------------------------------------\n";
 
-// 1. PHPMailer (Composer)
-if (is_file(BH_COMPOSER_AUTOLOAD)) {
-    $ok('PHPMailer is installed (security/vendor).');
-} else {
-    $bad('PHPMailer is NOT installed. In the project folder run:  composer install');
-    $problems++;
-}
-
-// 2. Gmail settings file
+// 1. Settings file
 $config = mailConfig();
 if ($config === null) {
-    $bad('security/mail.local.php is missing. Copy security/mail.local.example.php to security/mail.local.php and fill it in.');
+    $bad('security/mail.local.php is missing. Copy security/mail.local.example.php (Gmail) or security/mail.brevo.example.php (Brevo) to security/mail.local.php and fill it in.');
     $problems++;
+} elseif (mailUsesBrevo()) {
+    $ok('security/mail.local.php found: sending through Brevo.');
+    if (mailProblem() !== '') {
+        $bad(mailProblem());
+        $problems++;
+    }
 } else {
-    $ok('security/mail.local.php found.');
+    $ok('security/mail.local.php found: sending through Gmail.');
+    // 2. PHPMailer (Composer)
+    if (is_file(BH_COMPOSER_AUTOLOAD)) {
+        $ok('PHPMailer is installed (security/vendor).');
+    } else {
+        $bad('PHPMailer is NOT installed. In the project folder run:  composer install');
+        $problems++;
+    }
     if (!filter_var($config['username'] ?? '', FILTER_VALIDATE_EMAIL)) {
         $bad("'username' must be your Gmail address (now: '" . ($config['username'] ?? '') . "').");
         $problems++;
@@ -85,11 +90,11 @@ if ($to !== '') {
     }
     echo "\nSending a test email to {$to} ...\n";
     $result = sendMail($to, 'Test', 'Boarding House Rental System - test email',
-        '<p>Gmail sending works. Super Admin login codes will arrive like this.</p>',
-        'Gmail sending works. Super Admin login codes will arrive like this.');
+        '<p>Email sending works. Super Admin login codes will arrive like this.</p>',
+        'Email sending works. Super Admin login codes will arrive like this.');
     echo $result['success']
         ? "  [OK]   Sent! Check the inbox (and Spam).\n"
-        : "  [FIX]  Not sent. The reason is in storage/app.log (last line). Usually a wrong App Password.\n";
+        : "  [FIX]  Not sent. The reason is in storage/app.log (last line). Usually a wrong App Password or API key.\n";
     exit($result['success'] ? 0 : 1);
 }
 

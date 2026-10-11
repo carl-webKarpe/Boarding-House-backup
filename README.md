@@ -213,7 +213,7 @@ A provider without keys shows "not set up yet" when its button is clicked.
 2. In the host's **phpMyAdmin**: select your database → **Import** → `database/hosting-import.sql` (made by `php setup/make-hosting-sql.php`; it has no `CREATE DATABASE`/`USE` lines, which shared hosts refuse).
 3. Upload the project into `htdocs` with FTP (FileZilla), **including `security/vendor/`** and **without** `.git` and `node_modules`.
 4. Create `security/config.local.php` on the host with the hosting database details.
-5. Free hosts usually block Gmail SMTP: leave out `security/mail.local.php` there (the Super Admin then logs in without the code).
+5. Free hosts usually block Gmail SMTP. To still send the Super Admin code there, use **Brevo** (free, 300 emails/day, sends over HTTPS): create an account at brevo.com, verify your Gmail as a sender, generate an API key, then copy `security/mail.brevo.example.php` to `security/mail.local.php` on the server and fill in `api_key` and `from_email`. Without `security/mail.local.php` the Super Admin logs in without the code.
 6. Change the demo passwords, and turn on the free SSL (https).
 
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
