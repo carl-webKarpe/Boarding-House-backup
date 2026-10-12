@@ -16,6 +16,11 @@ declare(strict_types=1);
  *   GET api/rooms.php?version=1       fingerprint of the listings, so the page
  *                                     can tell when a landlord changed something
  *
+ * Identical rooms (same boarding house, type, price, deposit, capacity, size,
+ * description, amenities and own photos; e.g. added with "How many rooms like
+ * this?") come back as ONE card: the room with the best availability, plus a
+ * 'group' with every room in it. Pages count cards; meta.rooms counts rooms.
+ *
  * Only rooms in APPROVED boarding houses of active landlords are listed.
  * Rooms the landlord marked unavailable and listings set to "Temporarily
  * Unavailable" are hidden; "Fully Occupied" listings still show, as FULL. Nothing here is hard-coded: every
@@ -244,25 +249,61 @@ $orderBy = match (queryString('sort', 'newest')) {
 $pagination = paginationParams(6);
 $fromWhere = ROOM_BASE_FROM . ' WHERE ' . implode(' AND ', $where);
 
-$count = $pdo->prepare('SELECT COUNT(*) ' . $fromWhere);
-$count->execute($params);
-$total = (int) $count->fetchColumn();
-
-$stmt = $pdo->prepare(ROOM_SELECT . ' ' . $fromWhere . $orderBy . ' LIMIT ' . (int) $pagination['per_page'] . ' OFFSET ' . (int) $pagination['offset']);
+// All matching rooms (a town has few), so identical ones can be grouped before paging.
+$stmt = $pdo->prepare(ROOM_SELECT . ' ' . $fromWhere . $orderBy);
 $stmt->execute($params);
 $rows = $stmt->fetchAll();
 
 [$amenities, $roomPhotos, $housePhotos] = loadRoomExtras(array_column($rows, 'id'), array_column($rows, 'house_id'));
 
+$groups = [];
+foreach ($rows as $row) {
+    $room = formatRoom($row, $amenities, $roomPhotos, $housePhotos);
+    $key = implode('|', [$room['house']['id'], $room['room_type'], $room['price'], $room['deposit'], $room['capacity'],
+        $room['size_sqm'], md5((string) $row['room_description']), implode(',', $room['amenities']), implode(',', $roomPhotos[$room['id']] ?? [])]);
+    $groups[$key][] = $room;
+}
+
+$rank = ['available' => 0, 'reserved' => 1, 'full' => 2];
+$cards = [];
+foreach ($groups as $members) {
+    // The card opens the room most likely to accept a reservation.
+    $best = $members[0];
+    foreach ($members as $member) {
+        if ($rank[$member['availability']] < $rank[$best['availability']]) {
+            $best = $member;
+        }
+    }
+    if (count($members) > 1) {
+        usort($members, static fn ($a, $b) => strnatcasecmp((string) $a['room_number'], (string) $b['room_number']));
+        $best['updated_at'] = max(array_column($members, 'updated_at'));
+        $best['group'] = [
+            'count' => count($members),
+            'open_slots' => array_sum(array_column($members, 'open_slots')),
+            'capacity' => array_sum(array_column($members, 'capacity')),
+            'rooms' => array_map(static fn ($m) => [
+                'id' => $m['id'],
+                'room_number' => $m['room_number'],
+                'open_slots' => $m['open_slots'],
+                'availability' => $m['availability'],
+            ], $members),
+        ];
+    }
+    $cards[] = $best;
+}
+
+$total = count($cards);
+$pageCards = array_slice($cards, $pagination['offset'], $pagination['per_page']);
+
 $summary = $pdo->query("SELECT COUNT(*) AS rooms, COALESCE(SUM(r.occupants < r.capacity AND bh.availability_status = 'available'), 0) AS available, COUNT(DISTINCT bh.id) AS houses, MIN(r.price) AS min_price "
     . ROOM_BASE_FROM . ' WHERE ' . ROOM_BASE_WHERE)->fetch();
 
 jsonResponse(
-    array_map(fn ($row) => formatRoom($row, $amenities, $roomPhotos, $housePhotos), $rows),
+    $pageCards,
     '',
     200,
     [
-        'meta' => paginationMeta($total, $pagination),
+        'meta' => paginationMeta($total, $pagination) + ['rooms' => count($rows)],
         'summary' => [
             'rooms' => (int) $summary['rooms'],
             'available' => (int) $summary['available'],

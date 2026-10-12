@@ -247,6 +247,21 @@
     const free = `${plural(room.open_slots, "slot")} free of ${room.capacity}`;
     return room.availability === "reserved" ? `${free} · reservations pending` : free;
   };
+  // Identical rooms come as one card with a group (see api/rooms.php).
+  const isGroup = (room) => (room.group?.count || 1) > 1;
+  const roomsLine = (room) => {
+    if (!isGroup(room)) return room.room_number;
+    const names = room.group.rooms.map((r) => r.room_number);
+    return `${room.group.count} rooms like this · ${names.length > 4 ? `${names[0]} – ${names[names.length - 1]}` : names.join(", ")}`;
+  };
+  const cardSlotsLine = (room) => {
+    if (!isGroup(room)) return slotsLine(room);
+    const g = room.group;
+    if (!g.open_slots) return "No free slot right now";
+    const roomsFree = g.rooms.filter((r) => r.open_slots > 0).length;
+    return `${plural(g.open_slots, "slot")} free in ${plural(roomsFree, "room")} (${g.capacity} in total)`;
+  };
+  const roomCount = (room) => room.group?.count || 1;
   const timeAgo = (value) => {
     const d = new Date(String(value).replace(" ", "T"));
     const s = Math.round((Date.now() - d.getTime()) / 1000);
@@ -273,11 +288,11 @@
             <span class="text-xs text-muted">${esc(room.room_type_label)} · updated ${esc(timeAgo(room.updated_at))}</span>
           </div>
           <h3 id="room-${room.id}-title" class="mt-3 font-display text-xl font-semibold leading-snug text-brand">${esc(room.house.name)}</h3>
-          <p class="text-sm font-medium text-ink">${esc(room.room_number)}</p>
+          <p class="text-sm font-medium text-ink">${esc(roomsLine(room))}</p>
           <ul class="mt-3 space-y-1.5 text-sm text-muted">
             <li class="flex items-start gap-2">${icon("pin", "mt-0.5 h-4 w-4 shrink-0 text-brand")}<span>${esc(room.house.location || room.house.address)}</span></li>
             ${distance ? `<li class="flex items-start gap-2">${icon("school", "mt-0.5 h-4 w-4 shrink-0 text-brand")}<span>${esc(distance)}</span></li>` : ""}
-            <li class="flex items-start gap-2">${icon("users", "mt-0.5 h-4 w-4 shrink-0 text-brand")}<span>${esc(slotsLine(room))}</span></li>
+            <li class="flex items-start gap-2">${icon("users", "mt-0.5 h-4 w-4 shrink-0 text-brand")}<span>${esc(cardSlotsLine(room))}</span></li>
           </ul>
           <p class="mt-4 font-display text-2xl font-semibold text-ink">${priceLine(room)}</p>
           ${amenities.length ? `<ul class="mt-4 flex flex-wrap gap-1.5" aria-label="Amenities">${amenities.map((a) => `<li class="chip">${icon("check", "h-3 w-3")}${esc(a)}</li>`).join("")}${more > 0 ? `<li class="chip bg-brand/5">+${more} more</li>` : ""}</ul>` : ""}
@@ -366,7 +381,7 @@
       if (reset) listEl.innerHTML = "";
       res.data.forEach((room) => rooms.set(room.id, room));
       listEl.insertAdjacentHTML("beforeend", res.data.map(roomCard).join(""));
-      renderSummary(res.summary, res.meta.total);
+      renderSummary(res.summary, res.meta.rooms);
       if (!res.meta.total) {
         const filtered = query.q || query.type || query.max_price || query.available;
         listEl.innerHTML = `
@@ -377,9 +392,9 @@
             ${filtered ? '<button type="button" class="btn-outline mt-5" data-clear-filters>Clear filters</button>' : ""}
           </div>`;
       }
-      const shown = rooms.size;
+      const shown = [...rooms.values()].reduce((sum, r) => sum + roomCount(r), 0);
       loadMoreBtn.classList.toggle("hidden", page >= totalPages);
-      statusEl.textContent = res.meta.total ? (page >= totalPages ? `Showing all ${plural(res.meta.total, "room")}.` : `Showing ${shown} of ${res.meta.total} rooms.`) : "";
+      statusEl.textContent = res.meta.total ? (page >= totalPages ? `Showing all ${plural(res.meta.rooms, "room")}.` : `Showing ${shown} of ${res.meta.rooms} rooms.`) : "";
     } catch (error) {
       if (id !== requestId) return;
       if (reset) {
@@ -450,6 +465,7 @@
   async function openDetails(id) {
     const dlg = openDialog({ title: "Room details", content: `<div class="space-y-3 p-6">${skeletonCards(1)}</div>`, size: "max-w-4xl" });
     try {
+      const group = rooms.get(id)?.group;
       const room = await getRoom(id);
       const h = room.house;
       const l = room.landlord;
@@ -463,6 +479,7 @@
             ${room.deposit ? `<p class="text-sm text-muted">Deposit ${peso(room.deposit)}</p>` : ""}
             <dl class="mt-5 grid gap-2 sm:grid-cols-2">
               ${fact("Availability", esc(slotsLine(room)))}
+              ${group?.count > 1 ? fact("Rooms like this", esc(group.rooms.map((r) => `${r.room_number} (${r.open_slots ? plural(r.open_slots, "slot") + " free" : "full"})`).join(", "))) : ""}
               ${fact("Room type", esc(room.room_type_label))}
               ${fact("Barangay", esc(h.barangay))}
               ${fact("Nearby school", esc(h.nearby_school))}
