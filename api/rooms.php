@@ -17,8 +17,8 @@ declare(strict_types=1);
  *                                     can tell when a landlord changed something
  *
  * Identical rooms (same boarding house, type, price, deposit, capacity, size,
- * description, amenities and own photos; e.g. added with "How many rooms like
- * this?") come back as ONE card: the room with the best availability, plus a
+ * description, amenities and room photos; e.g. added with "How many rooms like
+ * this?", which stores a copy of the photos for every room) come back as ONE card: the room with the best availability, plus a
  * 'group' with every room in it. Pages count cards; meta.rooms counts rooms.
  *
  * Only rooms in APPROVED boarding houses of active landlords are listed.
@@ -256,11 +256,27 @@ $rows = $stmt->fetchAll();
 
 [$amenities, $roomPhotos, $housePhotos] = loadRoomExtras(array_column($rows, 'id'), array_column($rows, 'house_id'));
 
+// "How many rooms like this?" uploads a separate copy of the photos for each
+// room, so photos are compared by file size rather than by file name.
+$photoSizes = static function (array $paths): string {
+    return implode(',', array_map(static function (string $path): string {
+        $size = @filesize(BH_SYSTEM_ROOT . '/' . ltrim($path, '/'));
+        return $size === false ? $path : (string) $size;
+    }, $paths));
+};
+$roomPhotoPaths = [];
+if ($rows) {
+    $in = implode(',', array_map('intval', array_column($rows, 'id')));
+    foreach ($pdo->query("SELECT room_id, file_path FROM room_images WHERE room_id IN ({$in}) ORDER BY room_id, sort_order, id") as $photo) {
+        $roomPhotoPaths[(int) $photo['room_id']][] = (string) $photo['file_path'];
+    }
+}
+
 $groups = [];
 foreach ($rows as $row) {
     $room = formatRoom($row, $amenities, $roomPhotos, $housePhotos);
     $key = implode('|', [$room['house']['id'], $room['room_type'], $room['price'], $room['deposit'], $room['capacity'],
-        $room['size_sqm'], md5((string) $row['room_description']), implode(',', $room['amenities']), implode(',', $roomPhotos[$room['id']] ?? [])]);
+        $room['size_sqm'], md5((string) $row['room_description']), implode(',', $room['amenities']), $photoSizes($roomPhotoPaths[$room['id']] ?? [])]);
     $groups[$key][] = $room;
 }
 
