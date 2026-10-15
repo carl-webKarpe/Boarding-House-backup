@@ -104,14 +104,23 @@ async function renderRoute() {
       refreshBadges,
       isCurrent: () => token === renderToken,
     };
+    sessionStorage.removeItem('bh-module-reload');
     currentCleanup = await page.render(view, ctx);
     view.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });
   } catch (error) {
     if (token !== renderToken) return;
     console.error(error);
+    // The browser keeps a failed page-script download (e.g. the free host's
+    // security check got in the way) until the page is reloaded, so reload once.
+    const moduleFailed = /dynamically imported module|Importing a module script failed/i.test(String(error?.message));
+    if (moduleFailed && !sessionStorage.getItem('bh-module-reload')) {
+      sessionStorage.setItem('bh-module-reload', '1');
+      window.location.reload();
+      return;
+    }
     setHtml(view, errorState(error.message || 'Unexpected error.'));
-    $('[data-retry]', view)?.addEventListener('click', renderRoute);
+    $('[data-retry]', view)?.addEventListener('click', moduleFailed ? () => window.location.reload() : renderRoute);
   }
 }
 

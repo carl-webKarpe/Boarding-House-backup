@@ -33,7 +33,7 @@ $landlordName = sanitizeForOutput($_SESSION['full_name'] ?? $_SESSION['username'
 $landlordEmail = sanitizeForOutput($_SESSION['email'] ?? '');
 $initial = sanitizeForOutput(strtoupper(substr((string) ($_SESSION['full_name'] ?? 'L'), 0, 1)));
 $csrfToken = sanitizeForOutput(generateCsrfToken());
-$assetVersion = '20261008';
+$assetVersion = '20261015';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full">
