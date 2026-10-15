@@ -48,7 +48,7 @@ const PAGES = {
   reservations: () => import('./pages/reservations.js'),
   tenants: () => import('./pages/tenants.js'),
   payments: () => import('./pages/payments.js'),
-  chat: () => import('./pages/chat.js'),
+  chat: () => import('./pages/conversations.js'),
   messages: () => import('./pages/messages.js'),
   profile: () => import('./pages/profile.js'),
 };

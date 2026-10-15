@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Landlord <-> tenant chat, shared by api/landlord/chat.php and api/chat.php.
+ * Landlord <-> tenant chat, shared by api/landlord/conversations.php and api/conversations.php.
  *
  * A conversation belongs to exactly one landlord and one tenant. Both sides
  * can only open conversations they are part of; a new conversation can only

@@ -269,7 +269,7 @@ BHsystem/
 │   ├── rooms.php, listings.php   Public listings (Browse Rooms, landing page)
 │   ├── reservations.php          Student reservations
 │   ├── inquiries.php             Contact Landlord messages
-│   ├── chat.php, _chat.php       Landlord <-> tenant chat (student side + shared logic)
+│   ├── conversations.php, _chat.php  Landlord <-> tenant chat (student side + shared logic; not named chat.php because InfinityFree blocks that name)
 │   └── verify-login.php          Super Admin email code (step 2 of the login)
 │   ├── landlord/                 Landlord REST API (own data only)
 │   └── admin/                    Admin REST API (see below)

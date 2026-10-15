@@ -759,7 +759,7 @@
       drawThread();
       if (!chat.conversationId) return;
       try {
-        const res = await api("GET", "chat.php", { query: { conversation_id: chat.conversationId } });
+        const res = await api("GET", "conversations.php", { query: { conversation_id: chat.conversationId } });
         appendMessages(res.data, true);
         refreshChatBadge(res.unread_total);
       } catch (error) { toast(error.message, "error"); }
@@ -768,7 +768,7 @@
     async function poll() {
       if (document.visibilityState !== "visible" || !chat?.conversationId || !$("[data-chat-messages]", drawer.el)) return;
       try {
-        const res = await api("GET", "chat.php", { query: { conversation_id: chat.conversationId, after: lastId } });
+        const res = await api("GET", "conversations.php", { query: { conversation_id: chat.conversationId, after: lastId } });
         appendMessages(res.data);
       } catch { /* next time */ }
     }
@@ -776,7 +776,7 @@
     async function draw() {
       if (tab === "chat" && chat) { openThread(chat); return; }
       try {
-        const [reservations, messages, chats] = await Promise.all([api("GET", "reservations.php"), api("GET", "inquiries.php"), api("GET", "chat.php")]);
+        const [reservations, messages, chats] = await Promise.all([api("GET", "reservations.php"), api("GET", "inquiries.php"), api("GET", "conversations.php")]);
         conversations = chats.data;
         refreshChatBadge(chats.unread_total);
         const tabBtn = (key, label, count, highlight = false) => `<button type="button" role="tab" aria-selected="${tab === key}" data-tab="${key}" class="flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${tab === key ? "bg-brand text-white" : "text-brand hover:bg-brand/5"}">${label} <span class="${highlight ? "rounded-full bg-rose-500 px-1.5 text-[11px] text-white" : "opacity-70"}">${highlight ? count : `(${count})`}</span></button>`;
@@ -865,7 +865,7 @@
       if (!text) return;
       const button = $('[type="submit"]', e.target);
       try {
-        const res = await withBusy(button, () => api("POST", "chat.php", { data: chat.conversationId ? { conversation_id: chat.conversationId, body: text } : { room_id: chat.roomId, body: text } }), "");
+        const res = await withBusy(button, () => api("POST", "conversations.php", { data: chat.conversationId ? { conversation_id: chat.conversationId, body: text } : { room_id: chat.roomId, body: text } }), "");
         input.value = "";
         if (!chat.conversationId) {
           await openThread({ conversationId: res.conversation.id, name: res.conversation.name, photo: res.conversation.photo });
@@ -887,7 +887,7 @@
   async function refreshChatBadge(count) {
     if (!isTenant) return;
     if (count === undefined) {
-      try { count = (await api("GET", "chat.php")).unread_total; } catch { return; }
+      try { count = (await api("GET", "conversations.php")).unread_total; } catch { return; }
     }
     $$("header [data-open-reservations]").forEach((btn) => {
       let dot = $("[data-chat-dot]", btn);

@@ -5,10 +5,10 @@ declare(strict_types=1);
 /**
  * Student (tenant) chat with landlords.
  *
- *   GET  api/chat.php                                my conversations (+ unread total)
- *   GET  api/chat.php?conversation_id=3&after=120    messages
- *   POST api/chat.php  { conversation_id, body }     send in a conversation
- *   POST api/chat.php  { room_id, body }             start a chat with the landlord of a room
+ *   GET  api/conversations.php                                my conversations (+ unread total)
+ *   GET  api/conversations.php?conversation_id=3&after=120    messages
+ *   POST api/conversations.php  { conversation_id, body }     send in a conversation
+ *   POST api/conversations.php  { room_id, body }             start a chat with the landlord of a room
  *                                                    I reserved or asked about
  */
 

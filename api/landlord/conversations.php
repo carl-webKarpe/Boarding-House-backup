@@ -5,11 +5,11 @@ declare(strict_types=1);
 /**
  * Landlord chat with tenants.
  *
- *   GET  chat.php                                 my conversations (+ unread total)
- *   GET  chat.php?type=contacts                   tenants I can start a chat with
- *   GET  chat.php?conversation_id=3&after=120     messages (only newer than "after" when given)
- *   POST chat.php   { conversation_id, body }     send in a conversation
- *   POST chat.php   { tenant_id, body }           start (or continue) a chat with a tenant
+ *   GET  conversations.php                                 my conversations (+ unread total)
+ *   GET  conversations.php?type=contacts                   tenants I can start a chat with
+ *   GET  conversations.php?conversation_id=3&after=120     messages (only newer than "after" when given)
+ *   POST conversations.php   { conversation_id, body }     send in a conversation
+ *   POST conversations.php   { tenant_id, body }           start (or continue) a chat with a tenant
  */
 
 require_once __DIR__ . '/_landlord.php';

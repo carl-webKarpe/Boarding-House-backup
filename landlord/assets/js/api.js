@@ -134,10 +134,10 @@ export const api = {
   },
 
   chat: {
-    list: () => request('GET', 'chat.php'),
-    contacts: () => request('GET', 'chat.php', { query: { type: 'contacts' } }).then((r) => r.data),
-    messages: (conversationId, after = 0) => request('GET', 'chat.php', { query: { conversation_id: conversationId, after } }),
-    send: (body) => request('POST', 'chat.php', { body }),
+    list: () => request('GET', 'conversations.php'),
+    contacts: () => request('GET', 'conversations.php', { query: { type: 'contacts' } }).then((r) => r.data),
+    messages: (conversationId, after = 0) => request('GET', 'conversations.php', { query: { conversation_id: conversationId, after } }),
+    send: (body) => request('POST', 'conversations.php', { body }),
   },
 
   profile: {

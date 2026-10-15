@@ -45,7 +45,7 @@ if ($isLoggedIn) {
 $e = static fn (string $value): string => sanitizeForOutput($value);
 $initial = $e(strtoupper(substr($fullName ?: 'G', 0, 1)));
 $homeForRole = $isLoggedIn ? appUrl(homePathForRole($role)) : '';
-$assetVersion = '20261012';
+$assetVersion = '20261015';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
