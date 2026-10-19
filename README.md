@@ -163,6 +163,10 @@ UPDATE barangays SET is_active = 0 WHERE name = 'Old Name';   -- hide one from t
      `php setup/create-admin.php you@example.com "YourPass@123" First Last`.
 6. Open `http://localhost/BHsystem/html/loginform.html`. Administrators land on the dashboard at `http://localhost/BHsystem/admin/`.
 
+### Moving the database from MySQL Workbench to XAMPP
+
+See **`database/xampp/README.md`**: `bhsystem-xampp.sql` imports a fresh database in XAMPP's phpMyAdmin, and `convert-workbench-dump.php` turns a MySQL Workbench export (MySQL 8) into a file XAMPP's MariaDB accepts, keeping your data.
+
 ### Run without XAMPP (MySQL Server + MySQL Workbench only)
 
 You still need PHP to run the website, but not the XAMPP Control Panel.
@@ -276,6 +280,7 @@ BHsystem/
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
 ├── database/schema.sql, seed.sql, hosting-import.sql, migrate-landlord-dashboard.sql,
 │   migrate-tenants-payments-chat.sql, cleanup-demo-tenants.sql
+├── database/xampp/               XAMPP import file + MySQL Workbench → XAMPP converter
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup
