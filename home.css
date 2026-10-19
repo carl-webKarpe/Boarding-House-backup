@@ -113,8 +113,13 @@ button { font-family: inherit; cursor: pointer; }
  * Navbar
  * ---------------------------------------------------------------------- */
 .navbar {
-  position: sticky;
+  /* Fixed: it floats over the hero instead of taking space, so no strip of
+     the page background shows above the hero when the bar is taller
+     (e.g. the brand name wraps to two lines). */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   background: transparent;
   transition: background .25s ease, box-shadow .25s ease, padding .25s ease;
@@ -195,7 +200,6 @@ button { font-family: inherit; cursor: pointer; }
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  margin-top: calc(-1 * var(--nav-height));
   padding: calc(var(--nav-height) + 60px) 24px 140px;
   overflow: hidden;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
