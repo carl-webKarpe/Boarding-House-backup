@@ -14,7 +14,3 @@ node_modules/
 security/vendor/
 security/mail.local.php
 security/oauth.local.php
-
-# Your own MySQL Workbench exports (real data) - see database/xampp/README.md
-database/xampp/*.sql
-!database/xampp/bhsystem-xampp.sql
