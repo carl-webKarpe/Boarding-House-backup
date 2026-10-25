@@ -592,3 +592,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("year").textContent = new Date().getFullYear();
 });
+
+/* ---------------------------------------------------------------------- *
+ * Logged-in visitors (e.g. a student who pressed "Home" on Browse Rooms)
+ * stay logged in: the "Login" button is replaced by their name and a link
+ * back to their own page. api/me.php reads the session.
+ * ---------------------------------------------------------------------- */
+(async function showLoggedInUser() {
+  let me;
+  try {
+    const response = await fetch("../api/me.php", { headers: { Accept: "application/json" }, credentials: "same-origin" });
+    me = (await response.json()).data;
+  } catch {
+    return; // keep the normal Login button
+  }
+  if (!me || !me.logged_in) return;
+
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const home = "../" + String(me.home || "php/browse-rooms.php").replace(/^\/+/, "");
+  const firstName = String(me.name || "").trim().split(/\s+/)[0] || "there";
+  const isTenant = me.role === "tenant";
+  const accountLink = isTenant ? "../php/browse-rooms.php?reservations=1" : home;
+  const html = `
+    <a href="${esc(accountLink)}" class="btn btn--ghost" title="Logged in as ${esc(me.name)} (${esc(me.role_label)})">Hi, ${esc(firstName)}</a>
+    <a href="${esc(home)}" class="btn btn--lime">${isTenant ? "Browse Rooms" : "My Dashboard"}</a>`;
+  document.querySelectorAll(".navbar__actions").forEach((box) => { box.innerHTML = html; });
+})();

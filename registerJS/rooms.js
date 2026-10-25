@@ -712,7 +712,7 @@
       subtitle: "Reservations, rent, messages and chat",
       drawer: true,
       content: `<div class="space-y-3 p-5">${'<div class="skeleton h-28"></div>'.repeat(3)}</div>`,
-      onClose: () => { clearInterval(timer); refreshChatBadge(); },
+      onClose: () => { clearInterval(timer); refreshChatBadge(); refreshNotifications(); },
     });
 
     const bubble = (m) => `
@@ -827,7 +827,11 @@
 
     drawer.body.addEventListener("click", async (e) => {
       const tabBtn = e.target.closest("[data-tab]");
-      if (tabBtn) { tab = tabBtn.dataset.tab; chat = null; draw(); return; }
+      if (tabBtn) {
+        tab = tabBtn.dataset.tab; chat = null; draw();
+        if (tab === "chat") markNotifications({ action: "read_type", type: "chat" });
+        return;
+      }
       if (e.target.closest("[data-chat-back]")) { tab = "chat"; chat = null; draw(); return; }
       const openChat = e.target.closest("[data-chat-open]");
       if (openChat) {
@@ -883,35 +887,121 @@
     if (chat) openThread(chat); else draw();
   }
 
-  /** Red dot with the number of unread chat messages on "My Reservations". */
+  /** Unread chat messages on the "Chat" buttons in the header. */
   async function refreshChatBadge(count) {
     if (!isTenant) return;
     if (count === undefined) {
       try { count = (await api("GET", "conversations.php")).unread_total; } catch { return; }
     }
-    $$("header [data-open-reservations]").forEach((btn) => {
-      let dot = $("[data-chat-dot]", btn);
-      if (!dot) {
-        btn.classList.add("relative");
-        btn.insertAdjacentHTML("beforeend", '<span data-chat-dot class="absolute -right-0.5 -top-0.5 hidden min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white"></span>');
-        dot = $("[data-chat-dot]", btn);
-      }
+    $$("[data-chat-badge]").forEach((dot) => {
       dot.textContent = count > 9 ? "9+" : String(count);
       dot.classList.toggle("hidden", !count);
-      dot.title = count ? `${count} unread chat message${count === 1 ? "" : "s"}` : "";
     });
+    $$("header [data-open-chat]").forEach((btn) => {
+      btn.setAttribute("aria-label", count ? `Chat, ${count} unread message${count === 1 ? "" : "s"}` : "Chat");
+    });
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Notification bell (reservation updates, replies, rent, chat)
+   * ---------------------------------------------------------------- */
+  const bellBtn = $("[data-bell-button]");
+  const bellPanel = $("[data-bell-panel]");
+  const bellList = $("[data-bell-list]");
+  const NOTIF_ICONS = { chat: "message", inquiry_reply: "message", booking_status: "calendar", payment: "check" };
+  let notifications = [];
+  let lastUnread = null; // null until the first load, so old notifications do not pop up
+
+  function drawBell(unread) {
+    $$("[data-bell-badge]").forEach((dot) => {
+      dot.textContent = unread > 9 ? "9+" : String(unread);
+      dot.classList.toggle("hidden", !unread);
+    });
+    bellBtn?.setAttribute("aria-label", unread ? `Notifications, ${unread} unread` : "Notifications");
+    const readAll = $("[data-bell-read-all]");
+    if (readAll) readAll.disabled = !unread;
+    if (!bellList) return;
+    bellList.innerHTML = notifications.length
+      ? notifications.map((n) => `
+          <li><button type="button" class="notif-item ${n.is_read ? "" : "is-unread"}" data-notif="${n.id}">
+            <span class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full ${n.is_read ? "bg-cream text-muted" : "bg-lime text-brand"}">${icon(NOTIF_ICONS[n.type] || "info", "h-4 w-4")}</span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-start justify-between gap-2"><span class="text-sm font-semibold text-ink">${esc(n.title)}</span>${n.is_read ? "" : '<span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rose-500" aria-label="Unread"></span>'}</span>
+              <span class="mt-0.5 line-clamp-2 block text-xs text-muted">${esc(n.message)}</span>
+              <span class="mt-1 block text-[11px] text-muted/80">${esc(timeAgo(n.created_at))}</span>
+            </span>
+          </button></li>`).join("")
+      : `<li class="px-4 py-8 text-center">
+          <span class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-mint text-brand">${icon("check", "h-5 w-5")}</span>
+          <p class="mt-2 text-sm font-semibold text-ink">You're all caught up</p>
+          <p class="text-xs text-muted">Reservation updates, replies and new chat messages appear here.</p></li>`;
+  }
+
+  async function refreshNotifications() {
+    if (!isTenant) return;
+    let res;
+    try { res = await api("GET", "notifications.php", { query: { per_page: 10 } }); } catch { return; }
+    notifications = res.data;
+    const unread = res.unread || 0;
+    // Remind the student when something new arrived since the last check.
+    if (lastUnread !== null && unread > lastUnread) {
+      const newest = notifications.find((n) => !n.is_read);
+      if (newest) toast(`${newest.title}: ${newest.message}`, "info");
+      if (newest?.type === "chat") refreshChatBadge();
+    }
+    lastUnread = unread;
+    drawBell(unread);
+  }
+
+  async function markNotifications(query) {
+    try {
+      const res = await api("PUT", "notifications.php", { query });
+      lastUnread = res.unread || 0;
+      notifications = notifications.map((n) => (query.action === "read_all" || (query.action === "read_type" && n.type === query.type) || n.id === query.id ? { ...n, is_read: true } : n));
+      drawBell(lastUnread);
+    } catch { /* not important enough to show an error */ }
+  }
+
+  function closeBell() {
+    if (bellPanel && !bellPanel.hidden) { bellPanel.hidden = true; bellBtn.setAttribute("aria-expanded", "false"); }
+  }
+  bellBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeMenu();
+    bellPanel.hidden = !bellPanel.hidden;
+    bellBtn.setAttribute("aria-expanded", String(!bellPanel.hidden));
+    if (!bellPanel.hidden) refreshNotifications();
+  });
+  $("[data-bell-read-all]")?.addEventListener("click", (e) => { e.stopPropagation(); markNotifications({ action: "read_all" }); });
+  bellList?.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-notif]");
+    if (!item) return;
+    const n = notifications.find((x) => x.id === Number(item.dataset.notif));
+    if (!n) return;
+    if (!n.is_read) markNotifications({ id: n.id });
+    closeBell();
+    if (n.type === "chat") openChat();
+    else openMyReservations(n.type === "inquiry_reply" ? "messages" : "reservations");
+  });
+
+  /** Opens the chat and clears its notifications from the bell. */
+  function openChat() {
+    if (!isTenant) { loginPrompt("Chatting with landlords"); return; }
+    markNotifications({ action: "read_type", type: "chat" });
+    openMyReservations("chat");
   }
 
   /* ---------------------------------------------------------------- *
    * Global click handling
    * ---------------------------------------------------------------- */
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-details], [data-reserve], [data-contact], [data-open-reservations], [data-clear-filters], [data-retry]");
+    const t = e.target.closest("[data-details], [data-reserve], [data-contact], [data-open-reservations], [data-open-chat], [data-clear-filters], [data-retry]");
     if (!t) return;
+    if (t.hasAttribute("data-open-chat")) { closeMenu(); closeBell(); openChat(); return; }
     if (t.dataset.details) openDetails(Number(t.dataset.details));
     else if (t.dataset.reserve) openReserve(Number(t.dataset.reserve));
     else if (t.dataset.contact) openContact(Number(t.dataset.contact));
-    else if (t.hasAttribute("data-open-reservations")) { closeMenu(); openMyReservations(); }
+    else if (t.hasAttribute("data-open-reservations")) { closeMenu(); closeBell(); openMyReservations(); }
     else if (t.hasAttribute("data-clear-filters")) { filtersForm.reset(); loadRooms({ reset: true }); }
     else if (t.hasAttribute("data-retry")) loadRooms({ reset: true });
   });
@@ -919,14 +1009,18 @@
   // Account menu
   const menuBtn = $("[data-menu-button]");
   const menuPanel = $("[data-menu-panel]");
-  function closeMenu() { if (menuPanel) { menuPanel.classList.add("hidden"); menuBtn.setAttribute("aria-expanded", "false"); } }
+  function closeMenu() { if (menuPanel && !menuPanel.hidden) { menuPanel.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); } }
   menuBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    const open = menuPanel.classList.toggle("hidden") === false;
-    menuBtn.setAttribute("aria-expanded", String(open));
+    closeBell();
+    menuPanel.hidden = !menuPanel.hidden;
+    menuBtn.setAttribute("aria-expanded", String(!menuPanel.hidden));
   });
-  document.addEventListener("click", (e) => { if (menuPanel && !e.target.closest("[data-menu]")) closeMenu(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+  document.addEventListener("click", (e) => {
+    if (menuPanel && !e.target.closest("[data-menu]")) closeMenu();
+    if (bellPanel && !e.target.closest("[data-bell]")) closeBell();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); closeBell(); } });
 
   $$("[data-year]").forEach((el) => { el.textContent = new Date().getFullYear(); });
 
@@ -938,14 +1032,20 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("room")) openDetails(Number(params.get("room")));
     if (params.get("reservations") === "1") openMyReservations();
-    if (params.get("chat") === "1") openMyReservations("chat");
+    if (params.get("chat") === "1") openChat();
     if (params.get("welcome") === "1") {
       toast("Welcome! Your student account is ready. You can now reserve rooms and chat with landlords.");
       history.replaceState(null, "", window.location.pathname);
     }
   });
   refreshChatBadge();
-  setInterval(() => { if (document.visibilityState === "visible") refreshChatBadge(); }, POLL_MS);
+  refreshNotifications();
+  // Badges and the bell refresh every 15 seconds while the page is open.
+  setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    refreshChatBadge();
+    refreshNotifications();
+  }, 15000);
   checkForUpdates();
   setInterval(checkForUpdates, POLL_MS);
 })();

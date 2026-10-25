@@ -45,7 +45,7 @@ if ($isLoggedIn) {
 $e = static fn (string $value): string => sanitizeForOutput($value);
 $initial = $e(strtoupper(substr($fullName ?: 'G', 0, 1)));
 $homeForRole = $isLoggedIn ? appUrl(homePathForRole($role)) : '';
-$assetVersion = '20261015';
+$assetVersion = '20261025';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -71,51 +71,100 @@ $assetVersion = '20261015';
   <a href="#roomList" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow-card">Skip to rooms</a>
 
   <!-- ===================== Header ===================== -->
-  <header class="sticky top-0 z-40 border-b border-brand/10 bg-brand text-white">
-    <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-      <a href="../html/index.html" class="flex min-w-0 items-center gap-3">
+  <?php $isTenant = $isLoggedIn && $role === ROLE_TENANT; ?>
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-brand/95 text-white shadow-[0_8px_24px_-16px_rgba(0,0,0,0.5)] backdrop-blur">
+    <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+      <a href="../html/index.html" class="flex min-w-0 items-center gap-3" title="Home">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lime text-brand" aria-hidden="true">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>
         </span>
         <span class="truncate font-display text-sm font-semibold leading-tight sm:text-base">
-          Boarding House<span class="hidden sm:inline"> Rental System</span>
+          Boarding House<span class="hidden xl:inline"> Rental System</span>
         </span>
       </a>
 
-      <nav class="ml-auto flex items-center gap-1 text-sm font-semibold" aria-label="Main">
-        <a href="../html/index.html" class="hidden rounded-full px-3 py-2 text-white/80 transition hover:bg-white/10 hover:text-white md:inline-flex">Home</a>
-        <a href="browse-rooms.php" class="hidden rounded-full bg-white/10 px-3 py-2 text-lime md:inline-flex" aria-current="page">Browse Rooms</a>
-        <?php if ($isLoggedIn && $role === ROLE_TENANT): ?>
-          <button type="button" data-open-reservations class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span class="hidden sm:inline">My Reservations</span>
+      <!-- Main links (tablet and desktop) -->
+      <nav class="ml-auto hidden items-center gap-1 text-sm font-semibold md:flex" aria-label="Main">
+        <a href="../html/index.html" class="nav-pill">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>Home
+        </a>
+        <a href="browse-rooms.php" class="nav-pill nav-pill-active" aria-current="page">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Browse Rooms
+        </a>
+        <?php if ($isTenant): ?>
+          <button type="button" data-open-reservations class="nav-pill">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="lg:hidden">Reservations</span><span class="hidden lg:inline">My Reservations</span>
           </button>
+          <button type="button" data-open-chat class="nav-pill relative">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>Chat
+            <span data-chat-badge class="count-badge hidden"></span>
+          </button>
+        <?php endif; ?>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-1 md:ml-2">
+        <?php if ($isTenant): ?>
+          <!-- Chat shortcut (phones) -->
+          <button type="button" data-open-chat class="icon-btn relative md:hidden" aria-label="Chat">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+            <span data-chat-badge class="count-badge hidden"></span>
+          </button>
+
+          <!-- Notification bell -->
+          <div class="relative" data-bell>
+            <button type="button" class="icon-btn relative" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" data-bell-button>
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span data-bell-badge class="count-badge hidden"></span>
+            </button>
+            <div class="dropdown-panel w-auto p-0 max-sm:fixed max-sm:inset-x-4 max-sm:top-16 sm:right-0 sm:w-[22rem]" data-bell-panel hidden>
+              <div class="flex items-center justify-between gap-2 border-b border-brand/10 px-4 py-3">
+                <p class="font-display text-sm font-semibold text-brand">Notifications</p>
+                <button type="button" class="text-xs font-semibold text-brand hover:underline disabled:opacity-40" data-bell-read-all>Mark all as read</button>
+              </div>
+              <ul class="max-h-[60vh] overflow-y-auto" data-bell-list aria-live="polite">
+                <li class="px-4 py-6 text-center text-sm text-muted">Loading…</li>
+              </ul>
+              <button type="button" data-open-reservations class="block w-full border-t border-brand/10 px-4 py-3 text-center text-sm font-semibold text-brand hover:bg-mint/60">Open My Reservations</button>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ($isLoggedIn): ?>
           <div class="relative" data-menu>
-            <button type="button" class="ml-1 flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 transition hover:bg-white/20" aria-haspopup="true" aria-expanded="false" data-menu-button>
+            <button type="button" class="ml-1 flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-2 transition hover:bg-white/20 sm:pr-3" aria-haspopup="true" aria-expanded="false" data-menu-button>
               <span class="grid h-8 w-8 place-items-center rounded-full bg-lime font-bold text-brand"><?php echo $initial; ?></span>
-              <span class="hidden max-w-[10rem] truncate sm:inline"><?php echo $e($fullName); ?></span>
+              <span class="hidden max-w-[9rem] truncate sm:inline"><?php echo $e($fullName); ?></span>
+              <svg class="hidden h-4 w-4 opacity-70 sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
             </button>
-            <div class="absolute right-0 top-12 hidden w-56 rounded-2xl border border-brand/10 bg-white p-2 text-ink shadow-card" data-menu-panel>
-              <p class="truncate px-3 pb-2 pt-1 text-xs text-muted"><?php echo $e(roleLabel($role)); ?></p>
-              <?php if ($role !== ROLE_TENANT): ?>
-                <a href="<?php echo $e($homeForRole); ?>" class="block rounded-xl px-3 py-2 text-sm hover:bg-mint">My dashboard</a>
+            <div class="dropdown-panel right-0 w-60 p-2" data-menu-panel hidden>
+              <div class="flex items-center gap-3 px-3 pb-2 pt-1">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mint font-bold text-brand"><?php echo $initial; ?></span>
+                <span class="min-w-0"><span class="block truncate text-sm font-semibold"><?php echo $e($fullName); ?></span><span class="block text-xs text-muted"><?php echo $e(roleLabel($role)); ?></span></span>
+              </div>
+              <div class="my-1 border-t border-brand/10"></div>
+              <a href="../html/index.html" class="menu-item md:hidden">Home</a>
+              <a href="browse-rooms.php" class="menu-item md:hidden" aria-current="page">Browse Rooms</a>
+              <?php if ($isTenant): ?>
+                <button type="button" data-open-reservations class="menu-item">My Reservations</button>
+                <button type="button" data-open-chat class="menu-item">Chat with landlords</button>
               <?php else: ?>
-                <button type="button" data-open-reservations class="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-mint">My reservations &amp; messages</button>
+                <a href="<?php echo $e($homeForRole); ?>" class="menu-item">My dashboard</a>
               <?php endif; ?>
+              <div class="my-1 border-t border-brand/10"></div>
               <form method="post" action="logout.php">
                 <?php echo csrfInput(); ?>
-                <button type="submit" class="block w-full rounded-xl px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">Log out</button>
+                <button type="submit" class="menu-item text-rose-600 hover:bg-rose-50">Log out</button>
               </form>
             </div>
           </div>
         <?php else: ?>
-          <a href="../html/loginform.html" class="rounded-full px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white">Log in</a>
-          <a href="../html/account-type.html" class="rounded-full bg-lime px-4 py-2 text-brand transition hover:brightness-95">Sign up</a>
+          <a href="../html/index.html" class="nav-pill md:hidden" aria-label="Home">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>
+          </a>
+          <a href="../html/loginform.html" class="nav-pill">Log in</a>
+          <a href="../html/account-type.html" class="rounded-full bg-lime px-4 py-2 text-sm font-semibold text-brand transition hover:brightness-95">Sign up</a>
         <?php endif; ?>
-      </nav>
+      </div>
     </div>
   </header>
 

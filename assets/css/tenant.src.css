@@ -23,6 +23,23 @@
   .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-brand/5 hover:text-brand; }
   .btn-sm { @apply px-3.5 py-1.5 text-xs; }
 
+  /* Header navigation */
+  .nav-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-lime;
+  }
+  .nav-pill-active { @apply bg-white/10 text-lime hover:text-lime; }
+  .icon-btn {
+    @apply grid h-10 w-10 place-items-center rounded-full text-white/90 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-lime;
+  }
+  .count-badge {
+    @apply absolute -right-0.5 -top-0.5 min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-brand;
+  }
+  .dropdown-panel { @apply absolute top-12 z-50 overflow-hidden rounded-2xl border border-brand/10 bg-white text-ink shadow-card; }
+  .dropdown-panel[hidden] { display: none; }
+  .menu-item { @apply block w-full rounded-xl px-3 py-2 text-left text-sm text-ink transition hover:bg-mint; }
+  .notif-item { @apply flex w-full gap-3 border-b border-brand/5 px-4 py-3 text-left transition hover:bg-mint/50; }
+  .notif-item.is-unread { @apply bg-lime/10; }
+
   .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide; }
   .badge::before { content: ''; @apply h-1.5 w-1.5 rounded-full bg-current; }
   .badge-available { @apply bg-emerald-100 text-emerald-800; }
