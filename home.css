@@ -641,6 +641,10 @@ main > section { padding: 100px 24px; }
 .footer__logo { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--white); }
 .footer__logo strong { color: var(--lime); }
 .footer__brand p { margin-top: 12px; font-size: 0.9rem; max-width: 240px; color: rgba(248,248,241,0.65); }
+.footer__qr { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.footer__qr img { width: 96px; height: 96px; padding: 6px; border-radius: 12px; background: var(--white); }
+.footer__qr span { font-size: 0.82rem; line-height: 1.4; color: rgba(248,248,241,0.65); }
+.footer__qr strong { display: block; color: var(--white); }
 .footer__col h4 { color: var(--white); font-size: 0.85rem; letter-spacing: 0.06em; margin-bottom: 16px; }
 .footer__col a, .footer__col p { display: block; font-size: 0.88rem; color: rgba(248,248,241,0.7); margin-bottom: 10px; }
 .footer__col a:hover { color: var(--lime); }
