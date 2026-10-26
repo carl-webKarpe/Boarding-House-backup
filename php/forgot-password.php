@@ -7,6 +7,7 @@ require_once __DIR__ . '/../security/sanitize.php';
 require_once __DIR__ . '/../security/validation.php';
 require_once __DIR__ . '/../security/csrf.php';
 require_once __DIR__ . '/../security/audit_log.php';
+require_once __DIR__ . '/../security/mail.php';
 
 applySecurityHeaders();
 startSecureSession();
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $pdo = getDb();
-                $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+                $stmt = $pdo->prepare('SELECT id, username, email, first_name, last_name FROM users WHERE email = :email LIMIT 1');
                 $stmt->execute([':email' => $validation['value']]);
                 $user = $stmt->fetch();
 
@@ -49,11 +50,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $basePath = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/php/forgot-password.php'))), '/');
                     $resetLink = $scheme . '://' . $host . $basePath . '/reset-password.php?token=' . urlencode($token);
 
-                    // The link must only reach the account owner. Showing it on this page
-                    // would let anyone reset any account just by typing its email.
-                    // Until email sending is set up, the link is written to storage/app.log
-                    // so the developer can test the flow locally.
-                    writeLog('Password reset link for user #' . (int) $user['id'] . ': ' . $resetLink, 'INFO');
+                    // The link must only reach the account owner (never shown on this page).
+                    // It is emailed (Brevo / Gmail, security/mail.local.php). When email is
+                    // not set up or sending fails, it is written to storage/app.log instead,
+                    // so the site owner can still recover an account.
+                    $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: (string) $user['username'];
+                    $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+                    $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
+                    $html = <<<HTML
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1e293b">
+  <h2 style="margin:0 0 8px;color:#15803d">Reset your password</h2>
+  <p>Hi {$safeName},</p>
+  <p>Someone asked to reset the password of your <strong>Boarding House Rental System</strong> account. Press the button to choose a new password:</p>
+  <p style="text-align:center;margin:24px 0"><a href="{$safeLink}" style="background:#15803d;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:bold;display:inline-block">Choose a new password</a></p>
+  <p style="font-size:13px">Or copy this link into your browser:<br><span style="word-break:break-all;color:#15803d">{$safeLink}</span></p>
+  <p style="font-size:12px;color:#64748b">The link works for 1 hour and only once. If you did not ask for this, you can ignore this email; your password stays the same.</p>
+</div>
+HTML;
+                    $text = "Hi {$name},\n\nOpen this link to choose a new password for your Boarding House Rental System account:\n{$resetLink}\n\nThe link works for 1 hour and only once. If you did not ask for this, ignore this email.";
+                    $sent = mailReady() ? sendMail((string) $user['email'], $name, 'Reset your password', $html, $text) : ['success' => false];
+                    if ($sent['success']) {
+                        writeLog('Password reset email sent to user #' . (int) $user['id'], 'INFO');
+                    } else {
+                        writeLog('Password reset link for user #' . (int) $user['id'] . ' (email not sent): ' . $resetLink, 'INFO');
+                    }
                     auditLog('password_reset_request', 'Password reset requested', (int) $user['id']);
                 }
                 $message = 'If the account exists, a password reset link has been sent to its email address.';
