@@ -216,6 +216,11 @@ A provider without keys shows "not set up yet" when its button is clicked.
 5. Free hosts usually block Gmail SMTP. To still send the Super Admin code there, use **Brevo** (free, 300 emails/day, sends over HTTPS): create an account at brevo.com, verify your Gmail as a sender, generate an API key, then copy `security/mail.brevo.example.php` to `security/mail.local.php` on the server and fill in `api_key` and `from_email`. Without `security/mail.local.php` the Super Admin logs in without the code.
 6. Change the demo passwords, and turn on the free SSL (https).
 
+**Updating the live site later:** double-click `make-upload-folder.bat`. It creates `upload-to-infinityfree/` with only the website
+files - without `security/config.local.php`, `mail.local.php`, `oauth.local.php`, `storage/`, `uploads/`, `database/` and `setup/` -
+so uploading everything in it to `htdocs` can never replace the server's own settings, logs or landlord photos. Afterwards check
+FileZilla's **Failed transfers** tab is empty (`security/vendor/` has thousands of files).
+
 ### Demo accounts (`database/seed.sql` only — never import it on a real server)
 
 | Role | Email | Password |
