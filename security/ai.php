@@ -70,6 +70,7 @@ function aiProblem(): string {
 
 function aiLoadSdk(): bool {
     try {
+        require_once __DIR__ . '/ai_host_compat.php';
         if (is_file(BH_AI_AUTOLOAD)) {
             require_once BH_AI_AUTOLOAD;
         }
