@@ -7,7 +7,7 @@
    ========================================================================== */
 
 import { api } from '../api.js';
-import { html, setHtml, icon, $, $$, toast, escapeHtml, createImagePicker, savedPhotos, ROOM_TYPE_OPTIONS, formRoomType, aiButton, runAi, fillWithUndo } from '../ui.js';
+import { html, setHtml, icon, $, $$, toast, escapeHtml, createImagePicker, savedPhotos, ROOM_TYPE_OPTIONS, formRoomType } from '../ui.js';
 
 let amenityCache = null;
 
@@ -110,7 +110,6 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
         <p class="form-hint">Custom amenities are saved to your list so you can reuse them.</p>
       </fieldset>
 
-      ${aiButton('data-ai-room-write', 'Write room description with AI')}
       ${field(id('description'), 'Room description', html`<textarea id="${id('description')}" name="description" rows="5" maxlength="5000" class="form-control" placeholder="Describe the room: bed size, windows, what's included in the rent, curfew for this room, and other details students should know.">${v.description || ''}</textarea>`)}
 
       ${showPhotos ? html`
@@ -159,25 +158,6 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
     }
   };
   $('[data-custom-add]', root).addEventListener('click', addCustom);
-
-  // AI listing writer for this room.
-  $('[data-ai-room-write]', root)?.addEventListener('click', async (event) => {
-    const button = event.currentTarget;
-    const val = (name) => (root.querySelector(`[name="${name}"]`)?.value ?? '').trim();
-    const type = $('[data-room-type]:checked', root)?.value || 'single';
-    const facts = {
-      'Room': val('room_number'),
-      'Room type': type === 'single' ? 'Single room (whole room for one tenant)' : 'Shared room / bedspace',
-      'Monthly rent': val('price') ? `PHP ${val('price')}${type === 'shared' ? ' per person' : ''}` : '',
-      'Deposit': val('deposit') ? `PHP ${val('deposit')}` : '',
-      'Occupants': type === 'shared' ? val('capacity') : '1',
-      'Size': val('size_sqm') ? `${val('size_sqm')} square meters` : '',
-      'Amenities': $$('[data-amenity]:checked', root).map((c) => c.closest('label')?.textContent?.trim()).filter(Boolean).join(', '),
-    };
-    const textarea = root.querySelector('[name="description"]');
-    const draft = await runAi(button, () => api.ai.write({ kind: 'room', notes: textarea.value.trim(), facts }), 'Writing…');
-    if (draft) { fillWithUndo(button, [[textarea, draft.description]]); toast('AI draft added. Check it before saving.'); }
-  });
   $('[data-custom-input]', root).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } });
 
   /** Reads and checks the form. Returns { data, errors } in API terms. */

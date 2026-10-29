@@ -37,8 +37,6 @@
    * Icons
    * ---------------------------------------------------------------- */
   const ICONS = {
-    sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
-    send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
     pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
     school: '<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
     users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -1025,106 +1023,6 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); closeBell(); } });
 
   $$("[data-year]").forEach((el) => { el.textContent = new Date().getFullYear(); });
-
-  /* ---------------------------------------------------------------- *
-   * AI room finder (api/assistant.php) - only when the server has AI set up
-   * ---------------------------------------------------------------- */
-  function initRoomFinder() {
-    if (body.dataset.ai !== "1") return;
-    const SUGGESTIONS = ["Cheapest bedspace near SIIT", "Single room under ₱3,000", "Room for 2 people with WiFi", "Private bathroom, near school"];
-    const history = []; // { role, content }
-    let busy = false;
-
-    document.body.insertAdjacentHTML("beforeend", `
-      <button type="button" class="ai-fab" data-ai-open aria-haspopup="dialog" aria-controls="aiPanel">
-        ${icon("sparkles", "h-5 w-5")}<span>Ask AI</span>
-      </button>
-      <section id="aiPanel" class="ai-panel" role="dialog" aria-modal="false" aria-labelledby="aiTitle" hidden>
-        <header class="flex items-center gap-3 border-b border-brand/10 bg-brand px-4 py-3 text-white">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-lime text-brand">${icon("sparkles", "h-5 w-5")}</span>
-          <div class="min-w-0 flex-1"><h2 id="aiTitle" class="font-display text-sm font-semibold">AI Room Finder</h2>
-            <p class="text-[11px] text-white/70">Finds rooms listed on this site. It can make mistakes, so check the room details.</p></div>
-          <button type="button" class="icon-btn h-9 w-9" data-ai-close aria-label="Close">${icon("x", "h-5 w-5")}</button>
-        </header>
-        <div class="flex-1 space-y-3 overflow-y-auto bg-cream p-4" data-ai-log aria-live="polite">
-          <div class="ai-bubble">Hi! Tell me what you're looking for, like your budget, room type, how many people, or what amenities you need, and I'll pick matching rooms for you.</div>
-          <div class="flex flex-wrap gap-1.5" data-ai-suggestions>${SUGGESTIONS.map((t) => `<button type="button" class="chip bg-white hover:bg-mint" data-ai-suggest>${esc(t)}</button>`).join("")}</div>
-        </div>
-        <form class="flex items-end gap-2 border-t border-brand/10 bg-white p-3" data-ai-form>
-          <label class="sr-only" for="aiInput">Your question</label>
-          <textarea id="aiInput" rows="1" maxlength="600" class="field max-h-28 resize-none" placeholder="e.g. bedspace under ₱2,000 near SIIT"></textarea>
-          <button type="submit" class="btn-primary h-11 w-11 shrink-0 p-0" aria-label="Send">${icon("send", "h-4 w-4")}</button>
-        </form>
-      </section>`);
-
-    const fab = $("[data-ai-open]");
-    const panel = $("#aiPanel");
-    const log = $("[data-ai-log]", panel);
-    const form = $("[data-ai-form]", panel);
-    const input = $("#aiInput");
-
-    const open = () => { panel.hidden = false; fab.classList.add("hidden"); setTimeout(() => input.focus(), 50); };
-    const close = () => { panel.hidden = true; fab.classList.remove("hidden"); fab.focus(); };
-    fab.addEventListener("click", open);
-    $("[data-ai-close]", panel).addEventListener("click", close);
-    panel.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-
-    const roomCard = (r) => `
-      <li class="rounded-2xl border border-brand/10 bg-white p-3">
-        <p class="text-sm font-semibold text-ink">${esc(r.house)} <span class="font-normal text-muted">· ${esc(r.room_number)}</span></p>
-        <p class="mt-0.5 text-xs text-muted">${esc(r.type)} · ${peso(r.price)}${r.per_person ? "/person" : ""}/mo · ${r.free_slots ? plural(r.free_slots, "slot") + " free" : "Full"}${r.distance ? " · " + esc(r.distance) : ""}</p>
-        <div class="mt-2 flex gap-2">
-          <button type="button" class="btn-outline btn-sm" data-details="${r.id}">View</button>
-          ${r.free_slots ? `<button type="button" class="btn-lime btn-sm" data-reserve="${r.id}">Reserve</button>` : ""}
-        </div>
-      </li>`;
-
-    function add(role, text, rooms = []) {
-      const el = document.createElement("div");
-      el.className = role === "user" ? "flex justify-end" : "";
-      el.innerHTML = role === "user"
-        ? `<div class="ai-bubble ai-bubble-user">${esc(text)}</div>`
-        : `<div class="ai-bubble">${esc(text).replace(/\n/g, "<br>")}</div>${rooms.length ? `<ul class="mt-2 space-y-2">${rooms.map(roomCard).join("")}</ul>` : ""}`;
-      log.appendChild(el);
-      log.scrollTop = log.scrollHeight;
-      return el;
-    }
-
-    async function ask(question) {
-      question = question.trim();
-      if (!question || busy) return;
-      busy = true;
-      $("[data-ai-suggestions]", panel)?.remove();
-      add("user", question);
-      history.push({ role: "user", content: question });
-      input.value = "";
-      const typing = add("assistant", "Looking for rooms…");
-      typing.firstChild.classList.add("animate-pulse");
-      try {
-        const res = await api("POST", "assistant.php", { data: { messages: history } });
-        typing.remove();
-        add("assistant", res.data.reply || "Here is what I found.", res.data.rooms || []);
-        history.push({ role: "assistant", content: res.data.reply || "" });
-      } catch (error) {
-        typing.remove();
-        history.pop(); // let the student ask again
-        add("assistant", error.message || "Sorry, I could not answer right now.");
-      } finally {
-        busy = false;
-        input.focus();
-      }
-    }
-
-    form.addEventListener("submit", (e) => { e.preventDefault(); ask(input.value); });
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
-    panel.addEventListener("click", (e) => {
-      const s = e.target.closest("[data-ai-suggest]");
-      if (s) ask(s.textContent);
-      // On phones, close the chat when a room is opened so the details are visible.
-      if (e.target.closest("[data-details], [data-reserve]") && window.innerWidth < 640) close();
-    });
-  }
-  initRoomFinder();
 
   /* ---------------------------------------------------------------- *
    * Start

@@ -82,10 +82,6 @@ function resource(endpoint) {
 
 export const api = {
   stats: (months = 6) => request('GET', 'stats.php', { query: { months } }).then((r) => r.data),
-  ai: {
-    reviewListing: (houseId) => request('POST', 'ai-review.php', { body: { house_id: houseId } }).then((r) => r.data),
-    summary: (refresh = false) => request('GET', 'ai-summary.php', { query: refresh ? { refresh: 1 } : {} }).then((r) => r.data),
-  },
   reports: (months = 6) => request('GET', 'reports.php', { query: { months } }).then((r) => r.data),
   search: (q) => request('GET', 'search.php', { query: { q } }).then((r) => r.data),
   options: (type, q = '') => request('GET', 'options.php', { query: { type, q } }).then((r) => r.data),

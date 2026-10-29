@@ -1,7 +1,7 @@
 /* Messages from students ("Contact Landlord"): read, reply, close. */
 
 import { api } from '../api.js';
-import { html, $, icon, badge, fmtDateTime, timeAgo, toast, openModal, avatar, withLoading, aiButton, runAi, fillWithUndo } from '../ui.js';
+import { html, $, icon, badge, fmtDateTime, timeAgo, toast, openModal, avatar, withLoading } from '../ui.js';
 import { createListPage, actionButton } from '../../../../admin/assets/js/pages/_list.js';
 
 async function openMessage(id, list) {
@@ -34,20 +34,12 @@ async function openMessage(id, list) {
         <form id="replyForm" class="mt-5" novalidate>
           <label class="form-label" for="replyText">${m.reply ? 'Send a new reply' : 'Your reply'}</label>
           <textarea id="replyText" rows="4" maxlength="2000" class="form-control" required placeholder="Answer the student's question…"></textarea>
-          <div class="mt-2 flex flex-wrap items-center gap-2">${aiButton('data-ai-reply', 'Suggest a reply with AI')}</div>
           <p class="form-hint">${m.is_registered ? 'The student sees your reply under My Reservations and gets a notification.' : 'This visitor has no account - also contact them by email or phone.'}</p>
         </form>`}`,
     footer: html`
       <button type="button" class="btn btn-secondary" data-close>Close</button>
       ${m.status !== 'closed' ? html`<button type="button" class="btn btn-ghost" data-close-conversation>Close conversation</button>
         <button type="submit" form="replyForm" class="btn btn-primary">${icon('message')} Send reply</button>` : ''}`,
-  });
-
-  $('[data-ai-reply]', modal.el)?.addEventListener('click', async (event) => {
-    const button = event.currentTarget;
-    const box = $('#replyText', modal.el);
-    const res = await runAi(button, () => api.ai.reply({ type: 'inquiry', id: m.id, draft: box.value.trim() }), 'Writing…');
-    if (res) fillWithUndo(button, [[box, res.reply]]);
   });
 
   $('#replyForm', modal.el)?.addEventListener('submit', async (event) => {

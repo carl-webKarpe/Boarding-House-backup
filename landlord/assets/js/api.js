@@ -147,11 +147,6 @@ export const api = {
     changePassword: (body) => request('PUT', 'profile.php', { query: { action: 'password' }, body }),
   },
 
-  ai: {
-    write: (body) => request('POST', 'ai-writer.php', { body }).then((r) => r.data),
-    reply: (body) => request('POST', 'ai-reply.php', { body }).then((r) => r.data),
-  },
-
   notifications: {
     list: (query = {}) => request('GET', 'notifications.php', { query }),
     markRead: (id) => request('PUT', 'notifications.php', { query: { id }, body: {} }),

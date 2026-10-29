@@ -1,7 +1,7 @@
 /* Boarding house listings: review, approve/reject, edit, photos, delete. */
 
 import { api } from '../api.js';
-import { html, raw, icon, badge, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading, aiButton, runAi, setHtml } from '../ui.js';
+import { html, raw, icon, badge, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading } from '../ui.js';
 import { createListPage, actionButton } from './_list.js';
 
 const STATUS_OPTIONS = [
@@ -153,9 +153,7 @@ export async function render(view, ctx) {
       size: 'xl',
       body: html`
         <div class="mb-5 flex flex-wrap items-center gap-2">${badge(house.status, house.status === 'pending' ? 'Pending approval' : '')}
-          ${house.status === 'rejected' && house.rejection_reason ? html`<span class="text-sm text-rose-600">Reason: ${house.rejection_reason}</span>` : ''}
-          <span class="ml-auto">${aiButton('data-ai-check', 'AI listing check')}</span></div>
-        <div data-ai-result></div>
+          ${house.status === 'rejected' && house.rejection_reason ? html`<span class="text-sm text-rose-600">Reason: ${house.rejection_reason}</span>` : ''}</div>
 
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="rounded-2xl bg-slate-50 p-4"><p class="text-xs text-slate-500">Rooms</p><p class="mt-1 text-xl font-semibold">${num(house.available_rooms)} <span class="text-sm font-normal text-slate-500">of ${num(house.room_count)} available</span></p></div>
@@ -195,21 +193,6 @@ export async function render(view, ctx) {
         ${house.status === 'approved' || house.status === 'inactive' ? html`<button type="button" class="btn btn-secondary" data-inactive>${house.status === 'inactive' ? 'Re-activate' : 'Deactivate'}</button>` : ''}
         <button type="button" class="btn btn-secondary" data-edit>${icon('edit')} Edit</button>
         <button type="button" class="btn btn-secondary" data-close>Close</button>`,
-    });
-
-    $('[data-ai-check]', modal.el)?.addEventListener('click', async (event) => {
-      const res = await runAi(event.currentTarget, () => api.ai.reviewListing(house.id), 'Checking…');
-      if (!res) return;
-      const tone = { looks_good: ['border-emerald-200 bg-emerald-50', 'text-emerald-800', 'Looks good'], needs_attention: ['border-amber-200 bg-amber-50', 'text-amber-800', 'Needs attention'], suspicious: ['border-rose-200 bg-rose-50', 'text-rose-700', 'Suspicious'] }[res.verdict];
-      const sev = { high: 'bg-rose-100 text-rose-700', medium: 'bg-amber-100 text-amber-800', low: 'bg-slate-100 text-slate-600' };
-      setHtml($('[data-ai-result]', modal.el), html`
-        <div class="mb-5 rounded-2xl border p-4 ${tone[0]}">
-          <p class="flex items-center gap-2 text-sm font-semibold ${tone[1]}">${icon('sparkles', 'h-4 w-4 shrink-0')} AI check: ${tone[2]}</p>
-          <p class="mt-1 text-sm text-slate-700">${res.summary}</p>
-          ${res.issues.length ? html`<ul class="mt-3 space-y-1.5">${res.issues.map((i) => html`
-            <li class="flex items-start gap-2 text-sm text-slate-700"><span class="mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${sev[i.severity]}">${i.severity}</span><span>${i.text}</span></li>`)}</ul>` : ''}
-          <p class="mt-3 text-xs text-slate-500">A second opinion only. It can be wrong; you decide.</p>
-        </div>`);
     });
 
     $('[data-approve]', modal.el)?.addEventListener('click', () => approve(house, list, modal));
