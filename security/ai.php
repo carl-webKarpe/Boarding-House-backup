@@ -27,7 +27,6 @@ require_once __DIR__ . '/rate_limit.php';
 
 const BH_AI_CONFIG_FILE = __DIR__ . '/ai.local.php';
 const BH_AI_AUTOLOAD = __DIR__ . '/vendor/autoload.php';
-const BH_AI_SDK_FILE = __DIR__ . '/vendor/anthropic-ai/sdk/src/Client.php';
 const BH_AI_DEFAULT_MODEL = 'claude-opus-5-5';
 
 /** The AI settings, or null when security/ai.local.php does not exist yet. */
@@ -61,23 +60,16 @@ function aiProblem(): string {
         $config === null => 'security/ai.local.php is missing (copy security/ai.local.example.php).',
         !$config['enabled'] => "AI is turned off ('enabled' => false in security/ai.local.php).",
         !str_starts_with(trim((string) $config['api_key']), 'sk-ant-') => 'Put your Claude API key (starts with sk-ant-) in security/ai.local.php.',
-        // File checks only: pages call aiReady() to show the AI buttons, so it must never
-        // load the SDK (a half-uploaded vendor folder would otherwise break the whole page).
-        !is_file(BH_AI_AUTOLOAD) || !is_file(BH_AI_SDK_FILE) => 'The Anthropic SDK is not installed. Run "composer install" in the project folder and upload security/vendor.',
+        !is_file(BH_AI_AUTOLOAD) || !class_exists('Anthropic\\Client', true) && !aiLoadSdk() => 'The Anthropic SDK is not installed. Run "composer install" in the project folder.',
         default => '',
     };
 }
 
 function aiLoadSdk(): bool {
-    try {
-        if (is_file(BH_AI_AUTOLOAD)) {
-            require_once BH_AI_AUTOLOAD;
-        }
-        return class_exists('Anthropic\\Client');
-    } catch (\Throwable $e) {
-        writeLog('AI SDK could not be loaded: ' . $e->getMessage(), 'ERROR');
-        return false;
+    if (is_file(BH_AI_AUTOLOAD)) {
+        require_once BH_AI_AUTOLOAD;
     }
+    return class_exists('Anthropic\\Client');
 }
 
 function aiReady(): bool {
@@ -89,9 +81,7 @@ function aiClient(): \Anthropic\Client {
     if ($client) {
         return $client;
     }
-    if (!aiLoadSdk()) {
-        throw new \RuntimeException('The Anthropic SDK files are missing or incomplete (re-upload security/vendor).');
-    }
+    aiLoadSdk();
     $config = aiConfig();
     $http = [
         'timeout' => (float) $config['timeout_seconds'],
