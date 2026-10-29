@@ -1,7 +1,7 @@
 /* Chat with tenants: conversation list on the left, messages on the right (one at a time on phones). */
 
 import { api } from '../api.js';
-import { html, setHtml, $, $$, icon, toast, pageHeader, avatar, timeAgo, fmtDateTime, openModal } from '../ui.js';
+import { html, setHtml, $, $$, icon, toast, pageHeader, avatar, timeAgo, fmtDateTime, openModal, aiButton, runAi, fillWithUndo } from '../ui.js';
 
 const POLL_MS = 5000;
 
@@ -109,6 +109,7 @@ export async function render(view, ctx) {
       <div class="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4" data-messages>
         ${active.id ? html`<div class="skeleton h-10 w-1/2"></div>` : html`<p class="py-10 text-center text-sm text-slate-400">Say hello to ${active.name}.</p>`}
       </div>
+      ${active.id ? html`<div class="flex items-center gap-1 px-3 pt-2">${aiButton('data-ai-chat', 'Suggest a reply', 'btn btn-ghost btn-sm')}</div>` : ''}
       <form class="flex items-end gap-2 border-t border-slate-100 p-3" data-composer>
         <label class="sr-only" for="chatInput">Message</label>
         <textarea id="chatInput" rows="1" maxlength="2000" class="form-control max-h-32 resize-none" placeholder="Write a message… (Enter to send, Shift+Enter for a new line)" required></textarea>
@@ -211,11 +212,17 @@ export async function render(view, ctx) {
     }));
   }
 
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
     const open = event.target.closest('[data-open]');
     if (open) { openConversation(conversations.find((c) => String(c.id) === open.dataset.open)); return; }
     if (event.target.closest('[data-new-chat]')) { openNewChatPicker(); return; }
     if (event.target.closest('[data-back]')) { active = null; showThreadPane(false); renderList(); }
+    const aiChat = event.target.closest('[data-ai-chat]');
+    if (aiChat && active?.id) {
+      const input = $('#chatInput', container);
+      const res = await runAi(aiChat, () => api.ai.reply({ type: 'chat', conversation_id: active.id, draft: input.value.trim() }), 'Writing…');
+      if (res) fillWithUndo(aiChat, [[input, res.reply]]);
+    }
   });
   container.addEventListener('submit', async (event) => {
     if (!event.target.matches('[data-composer]')) return;

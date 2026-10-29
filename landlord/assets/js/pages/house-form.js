@@ -10,8 +10,7 @@
 import { api } from '../api.js';
 import {
   html, setHtml, icon, $, $$, toast, confirmDialog, openModal, pageHeader, listingBadge,
-  createImagePicker, savedPhotos, AVAILABILITY_OPTIONS,
-} from '../ui.js';
+  createImagePicker, savedPhotos, AVAILABILITY_OPTIONS, aiButton, runAi, fillWithUndo } from '../ui.js';
 import { mountRoomForm, loadAmenities } from './room-form.js';
 
 const DEFAULT_SCHOOL = 'Siargao Island Institute of Technology (SIIT)';
@@ -185,6 +184,11 @@ export async function render(view, ctx) {
 
       ${section(4, 'Description and house rules', '', html`
         <div class="grid gap-4">
+          ${aiButton('data-ai-write', 'Write description and rules with AI') ? html`
+            <div class="flex flex-wrap items-center gap-2 rounded-xl bg-primary-50 p-3 text-sm text-slate-600">
+              ${aiButton('data-ai-write', 'Write description and rules with AI')}
+              <span>Type a few notes below (or just fill in the details above), and the AI writes a clear draft for you to check.</span>
+            </div>` : ''}
           <div>
             <label class="form-label" for="h-description">Description</label>
             <textarea id="h-description" name="description" rows="6" maxlength="5000" class="form-control" placeholder="What makes your boarding house a good place for students: security, quiet study areas, nearby stores and transport, what the rent includes…">${v.description || ''}</textarea>
@@ -222,6 +226,26 @@ export async function render(view, ctx) {
   const form = $('#houseForm', container);
   const coverPicker = createImagePicker($('[data-cover-picker]', form), { multiple: false, title: editing ? 'Choose a new main photo' : 'Choose the main photo' });
   const morePicker = createImagePicker($('[data-more-picker]', form), { multiple: true, max: 15, title: 'Add more photos' });
+
+  /* AI listing writer: turns the notes and form details into a draft */
+  $('[data-ai-write]', form)?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const value = (name) => form.elements[name]?.value?.trim() || '';
+    const facts = {
+      'Name': value('name'),
+      'Barangay': form.elements.barangay_id?.selectedOptions[0]?.textContent?.trim() || '',
+      'Municipality': value('municipality'),
+      'Address': value('address'),
+      'Landmark': value('location_note'),
+      'Nearby school': value('nearby_school'),
+      'Distance from school': value('distance_note'),
+    };
+    const notes = [value('description') && `Description notes: ${value('description')}`, value('house_rules') && `Rules notes: ${value('house_rules')}`].filter(Boolean).join('\n');
+    const draft = await runAi(button, () => api.ai.write({ kind: 'house', notes, facts }), 'Writing…');
+    if (!draft) return;
+    fillWithUndo(button, [[form.elements.description, draft.description], [form.elements.house_rules, draft.house_rules || value('house_rules')]]);
+    toast('AI draft added. Read it and change anything before saving.');
+  });
 
   /* Barangay -> municipality and province */
   const barangay = form.elements.barangay_id;

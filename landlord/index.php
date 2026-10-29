@@ -15,6 +15,7 @@ require_once __DIR__ . '/../security/security_headers.php';
 require_once __DIR__ . '/../security/session.php';
 require_once __DIR__ . '/../security/sanitize.php';
 require_once __DIR__ . '/../security/database.php';
+require_once __DIR__ . '/../security/ai.php';
 
 applySecurityHeaders(['https://www.openstreetmap.org'], true);
 requireRole([ROLE_LANDLORD]);
@@ -41,6 +42,7 @@ $assetVersion = '20261015';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="<?php echo $csrfToken; ?>" />
+  <meta name="ai-enabled" content="<?php echo aiReady() ? '1' : '0'; ?>" />
   <meta name="robots" content="noindex" />
   <title>Landlord Dashboard | Boarding House Rental System</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2316A34A'%3E%3Cpath d='M12 3 2 11h3v9h5v-6h4v6h5v-9h3z'/%3E%3C/svg%3E" />

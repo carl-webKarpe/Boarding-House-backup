@@ -522,3 +522,53 @@ export function downloadCsv(filename, headers, rows) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
+
+/* ---------------------------------------------------------------------- *
+ * AI assistant helpers (admin + landlord dashboards). The buttons only show
+ * when index.php says the server has AI set up (<meta name="ai-enabled">).
+ * ---------------------------------------------------------------------- */
+export const aiEnabled = () => document.querySelector('meta[name="ai-enabled"]')?.content === '1';
+
+/** "✨ label" button, or nothing when AI is off. `attr` is a data attribute such as "data-ai-write". */
+export const aiButton = (attr, label, className = 'btn btn-secondary btn-sm') => (aiEnabled()
+  ? html`<button type="button" class="${className}" ${raw(attr)}>${icon('sparkles')} ${label}</button>`
+  : '');
+
+/** Runs an AI request with a busy state on the button; shows the error as a toast. Returns null on failure. */
+export async function runAi(button, task, busyLabel = 'Thinking…') {
+  if (button.disabled) return null;
+  const original = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = `<span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span> ${escapeHtml(busyLabel)}`;
+  try {
+    return await task();
+  } catch (error) {
+    toast(error.message || 'The AI assistant could not answer. Please try again.', 'error');
+    return null;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = original;
+  }
+}
+
+/** Puts AI text into form fields ([[field, text], ...]) with an "Undo" link next to `button`. */
+export function fillWithUndo(button, pairs) {
+  const previous = pairs.map(([field]) => field.value);
+  pairs.forEach(([field, text]) => {
+    if (text === undefined || text === null) return;
+    field.value = text;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  button.parentElement.querySelector('[data-ai-undo]')?.remove();
+  const undo = document.createElement('button');
+  undo.type = 'button';
+  undo.className = 'btn btn-ghost btn-sm';
+  undo.dataset.aiUndo = '';
+  undo.textContent = 'Undo';
+  undo.addEventListener('click', () => {
+    pairs.forEach(([field], i) => { field.value = previous[i]; field.dispatchEvent(new Event('input', { bubbles: true })); });
+    undo.remove();
+  });
+  button.after(undo);
+  pairs[0]?.[0]?.focus();
+}

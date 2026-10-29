@@ -1,7 +1,7 @@
 /* Dashboard overview: statistic cards, charts, approvals queue, recent activity. */
 
 import { api } from '../api.js';
-import { html, setHtml, icon, $, num, timeAgo, fmtDate, errorState } from '../ui.js';
+import { html, setHtml, icon, $, num, timeAgo, fmtDate, errorState, aiEnabled, runAi } from '../ui.js';
 import { lineChart, horizontalBarChart, chartTable, BRAND } from '../charts.js';
 
 export const ACTIVITY_STYLES = {
@@ -73,6 +73,29 @@ function animateCounts(root) {
   });
 }
 
+/** Fills the AI summary card (api/admin/ai-summary.php; kept 30 minutes on the server). */
+async function loadAiSummary(container, refresh = false) {
+  const box = $('[data-ai-summary]', container);
+  if (!box) return;
+  let data;
+  try {
+    data = await api.ai.summary(refresh);
+  } catch (error) {
+    setHtml(box, html`<p class="text-sm text-slate-500">${error.message}</p>`);
+    return;
+  }
+  setHtml(box, html`
+    <p class="text-base font-semibold text-ink">${data.headline}</p>
+    <div class="mt-3 grid gap-4 md:grid-cols-2">
+      <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Highlights</p>
+        <ul class="mt-1.5 space-y-1 text-sm text-slate-700">${data.highlights.map((t) => html`<li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>${t}</li>`)}</ul></div>
+      <div><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Suggested next steps</p>
+        ${data.actions.length ? html`<ul class="mt-1.5 space-y-1 text-sm text-slate-700">${data.actions.map((t) => html`<li class="flex gap-2">${icon('check', 'mt-0.5 h-4 w-4 shrink-0 text-primary')}${t}</li>`)}</ul>` : html`<p class="mt-1.5 text-sm text-slate-500">Nothing urgent right now.</p>`}</div>
+    </div>`);
+  const when = $('[data-ai-when]', container);
+  if (when && data.generated_at) when.textContent = `Written by AI ${timeAgo(data.generated_at)} from the site's numbers. It can make mistakes.`;
+}
+
 export async function render(container, ctx) {
   const load = async () => {
     let data;
@@ -109,6 +132,18 @@ export async function render(container, ctx) {
         ${statCard({ label: 'Occupied Rooms', value: c.occupied_rooms, iconName: 'bed', tone: 'bg-indigo-50 text-indigo-600', sub: html`${c.occupancy_rate}% of beds occupied`, href: '#/rooms?status=occupied' })}
         ${statCard({ label: 'Pending Approvals', value: c.pending_approvals.total, iconName: 'clock', tone: 'bg-amber-50 text-amber-600', sub: html`${num(c.pending_approvals.listings)} listings · ${num(c.pending_approvals.landlords)} landlords`, href: '#/boarding-houses?status=pending' })}
       </section>
+
+      ${aiEnabled() ? html`
+        <section class="card fade-up mt-6 border-primary-100 bg-gradient-to-br from-primary-50 to-white p-5" aria-label="AI summary">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white">${icon('sparkles')}</span>
+              <div><h2 class="font-semibold text-ink">AI summary</h2><p class="text-xs text-slate-500" data-ai-when>Written by AI from the numbers above. It can make mistakes.</p></div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" data-ai-refresh>${icon('refresh')} Refresh</button>
+          </div>
+          <div class="mt-4" data-ai-summary><div class="skeleton h-5 w-2/3"></div><div class="skeleton mt-2 h-4 w-1/2"></div></div>
+        </section>` : ''}
 
       <section class="mt-6 grid gap-6 xl:grid-cols-3">
         <div class="card fade-up p-5 xl:col-span-2">
@@ -179,6 +214,8 @@ export async function render(container, ctx) {
       </section>`);
 
     animateCounts(container);
+    loadAiSummary(container);
+    $('[data-ai-refresh]', container)?.addEventListener('click', (event) => runAi(event.currentTarget, () => loadAiSummary(container, true), 'Writing…'));
 
     lineChart($('#chartRegistrations', container), charts.labels, [
       { label: 'Tenants', data: charts.registrations.tenants },

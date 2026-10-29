@@ -40,6 +40,17 @@
   .notif-item { @apply flex w-full gap-3 border-b border-brand/5 px-4 py-3 text-left transition hover:bg-mint/50; }
   .notif-item.is-unread { @apply bg-lime/10; }
 
+  /* AI room finder */
+  .ai-fab {
+    @apply fixed bottom-5 right-5 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-lime shadow-card ring-4 ring-lime/30 transition hover:-translate-y-0.5 hover:bg-brand-light focus:outline-none focus-visible:ring-lime;
+  }
+  .ai-panel {
+    @apply fixed inset-x-3 bottom-3 top-20 z-[60] flex flex-col overflow-hidden rounded-3xl border border-brand/10 bg-white shadow-card sm:inset-x-auto sm:right-5 sm:top-auto sm:h-[min(36rem,calc(100vh-7rem))] sm:w-[24rem];
+  }
+  .ai-panel[hidden] { display: none; }
+  .ai-bubble { @apply inline-block max-w-[92%] whitespace-pre-line rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-sm leading-relaxed text-ink shadow-sm; }
+  .ai-bubble-user { @apply rounded-2xl rounded-tr-md bg-brand text-white; }
+
   .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide; }
   .badge::before { content: ''; @apply h-1.5 w-1.5 rounded-full bg-current; }
   .badge-available { @apply bg-emerald-100 text-emerald-800; }
