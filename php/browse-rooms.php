@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../security/security_headers.php';
 require_once __DIR__ . '/../security/session.php';
 require_once __DIR__ . '/../security/sanitize.php';
+require_once __DIR__ . '/../security/ai.php';
 
 // The room details window embeds an OpenStreetMap map.
 applySecurityHeaders(['https://www.openstreetmap.org']);
@@ -66,7 +67,8 @@ $assetVersion = '20261025';
       data-role="<?php echo $e((string) $role); ?>"
       data-name="<?php echo $e($account['name']); ?>"
       data-email="<?php echo $e($account['email']); ?>"
-      data-phone="<?php echo $e($account['phone']); ?>">
+      data-phone="<?php echo $e($account['phone']); ?>"
+      data-ai="<?php echo aiReady() ? '1' : '0'; ?>">
 
   <a href="#roomList" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow-card">Skip to rooms</a>
 

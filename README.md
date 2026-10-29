@@ -228,6 +228,29 @@ Have an older database with the 72 sample tenants? Run `database/cleanup-demo-te
 
 Seed dates are relative to the day you import it, so the charts always show recent activity. Re-import it any time to reset the demo.
 
+### AI assistant (Claude API) - optional
+
+Five small AI helpers, all off until you add an API key:
+
+| Who | Where | What it does |
+|---|---|---|
+| Students / visitors | Browse Rooms → **Ask AI** button | Finds rooms from plain words ("bedspace under ₱2,000 near SIIT"). It can only recommend rooms that are really listed. |
+| Landlords | Add/Edit boarding house, Add/Edit room | **Write with AI**: turns short notes into a description and house rules (with Undo). |
+| Landlords | Inquiries and Chat | **Suggest a reply**: drafts an answer to the student; the landlord edits and sends it. |
+| Admins | Boarding Houses → details | **AI listing check**: a second opinion (missing info, odd prices, warning signs). |
+| Admins | Dashboard | **AI summary** of the site's numbers (cached 30 minutes, **Refresh** button). |
+
+Setup:
+
+1. Create a key at https://platform.claude.com (API keys) and add credit under Billing.
+2. Run `composer install` in the project folder (installs `anthropic-ai/sdk` and `guzzlehttp/guzzle` into `security/vendor/`; needs PHP 8.1+).
+3. Copy `security/ai.local.example.php` to `security/ai.local.php` and paste your key. This file is git-ignored - never commit or share the key.
+4. On InfinityFree, upload `security/vendor/` and your `security/ai.local.php` too.
+
+Notes: the default model is `claude-opus-5-5`; set `'model' => 'claude-haiku-5-5'` in `ai.local.php` for a much lower cost.
+Limits (per person per feature per hour, and per day for the whole site) are in the same file. Only listing facts and the message
+being answered are sent - never passwords, emails, phone numbers or ID documents. Problems are written to `storage/app.log`.
+
 ### Rebuilding the CSS (only when you change Tailwind classes)
 
 The compiled files are committed, so XAMPP needs no Node.js. If you add new Tailwind classes:

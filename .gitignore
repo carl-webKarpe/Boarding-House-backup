@@ -14,3 +14,4 @@ node_modules/
 security/vendor/
 security/mail.local.php
 security/oauth.local.php
+security/ai.local.php
