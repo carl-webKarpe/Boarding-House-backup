@@ -21,6 +21,7 @@ $role = sanitizeForOutput($_SESSION['role'] ?? 'tenant');
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    window.tailwind = window.tailwind || {}; // the page still works if the Tailwind CDN is slow or blocked
     tailwind.config = {
       darkMode: 'class',
       theme: {

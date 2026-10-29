@@ -17,6 +17,7 @@
   <!-- Tailwind CSS (CDN, config extended below — no build step) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    window.tailwind = window.tailwind || {}; // the page still works if the Tailwind CDN is slow or blocked
     tailwind.config = {
       darkMode: "class",
       theme: {
