@@ -206,10 +206,19 @@ function aiJson(string $feature, string $system, array $messages, array $schema,
         return ['success' => false, 'status' => 429, 'message' => 'The AI assistant is busy. Please try again in a minute.'];
     } catch (\Anthropic\Core\Exceptions\APIStatusException $e) {
         $type = $e->type?->value ?? 'unknown';
-        writeLog("AI {$feature}: API error {$type} - " . aiErrorDetail($e), 'ERROR');
-        return ['success' => false, 'status' => 502, 'message' => $type === 'billing_error'
-            ? 'The AI assistant is paused (the AI account has no credit).'
-            : 'The AI assistant could not answer. Please try again.'];
+        $detail = aiErrorDetail($e);
+        writeLog("AI {$feature}: API error {$type} - " . $detail, 'ERROR');
+        // Name the common setup problems so the site owner can fix them without reading the log.
+        $message = match (true) {
+            $type === 'billing_error' || (bool) preg_match('/credit balance|billing|purchase credits/i', $detail)
+                => 'The AI assistant is paused: the Claude account has no credit (platform.claude.com > Billing).',
+            $e->status === 404 || $type === 'not_found_error'
+                => 'The AI model in security/ai.local.php is not available to this Claude account. Try claude-haiku-5-5.',
+            $type === 'overloaded_error' || $e->status === 529
+                => 'The AI assistant is busy right now. Please try again in a minute.',
+            default => 'The AI assistant could not answer (' . $detail . ').',
+        };
+        return ['success' => false, 'status' => 502, 'message' => $message];
     } catch (\Throwable $e) {
         // Connection problems, timeouts, missing SDK classes ...
         writeLog("AI {$feature}: " . get_class($e) . ' - ' . substr(str_replace(["\r", "\n"], ' ', $e->getMessage()), 0, 300), 'ERROR');
