@@ -137,6 +137,13 @@ function aiCountUse(string $feature, string $who): void {
     hitRateLimit('ai_day', 'site', 1440);
 }
 
+/** "HTTP 400: <the API's own error message>" - the SDK's getMessage() starts with a generic title. */
+function aiErrorDetail(\Anthropic\Core\Exceptions\APIStatusException $e): string {
+    $body = is_array($e->body) ? $e->body : [];
+    $text = $body['error']['message'] ?? (is_string($e->body) ? $e->body : $e->getMessage());
+    return 'HTTP ' . ($e->status ?? '?') . ': ' . substr(str_replace(["\r", "\n"], ' ', (string) $text), 0, 300);
+}
+
 /** Wraps text written by users so the model treats it as data, not instructions. */
 function aiUntrusted(string $label, string $text): string {
     $clean = str_replace(['<untrusted', '</untrusted'], ['‹untrusted', '‹/untrusted'], $text);
@@ -162,38 +169,50 @@ function aiJson(string $feature, string $system, array $messages, array $schema,
         $systemBlocks[] = ['type' => 'text', 'text' => $cacheableContext, 'cacheControl' => ['type' => 'ephemeral']];
     }
 
+    $request = [
+        'model' => (string) $config['model'],
+        'maxTokens' => $maxTokens,
+        'system' => $systemBlocks,
+        'messages' => $messages,
+        'outputConfig' => [
+            'effort' => $effort,
+            'format' => ['type' => 'json_schema', 'schema' => $schema],
+        ],
+        // If the model declines for policy reasons, the API retries on its default fallback model.
+        'fallbacks' => 'default',
+        'betas' => ['server-side-fallback-2026-07-01'],
+    ];
+
     try {
-        $message = aiClient()->beta->messages->create(
-            model: (string) $config['model'],
-            maxTokens: $maxTokens,
-            system: $systemBlocks,
-            messages: $messages,
-            outputConfig: [
-                'effort' => $effort,
-                'format' => ['type' => 'json_schema', 'schema' => $schema],
-            ],
-            // If the model declines for policy reasons, the API retries on its default fallback model.
-            fallbacks: 'default',
-            betas: ['server-side-fallback-2026-07-01'],
-        );
+        try {
+            $message = aiClient()->beta->messages->create(...$request);
+        } catch (\Anthropic\Core\Exceptions\BadRequestException $e) {
+            // The fallback option is a beta; if this account or model rejects it, ask again without it.
+            if (!preg_match('/fallback|beta/i', aiErrorDetail($e))) {
+                throw $e;
+            }
+            writeLog("AI {$feature}: the API rejected the fallback option, retrying without it.", 'WARN');
+            unset($request['fallbacks'], $request['betas']);
+            $message = aiClient()->beta->messages->create(...$request);
+        }
     } catch (\Anthropic\Core\Exceptions\AuthenticationException $e) {
         writeLog("AI {$feature}: the API key was rejected (check security/ai.local.php).", 'ERROR');
         return ['success' => false, 'status' => 503, 'message' => 'The AI assistant is not available right now.'];
     } catch (\Anthropic\Core\Exceptions\PermissionDeniedException $e) {
-        writeLog("AI {$feature}: permission denied - " . $e->getMessage(), 'ERROR');
+        writeLog("AI {$feature}: permission denied - " . aiErrorDetail($e), 'ERROR');
         return ['success' => false, 'status' => 503, 'message' => 'The AI assistant is not available right now.'];
     } catch (\Anthropic\Core\Exceptions\RateLimitException $e) {
         writeLog("AI {$feature}: rate limited by the API.", 'WARN');
         return ['success' => false, 'status' => 429, 'message' => 'The AI assistant is busy. Please try again in a minute.'];
     } catch (\Anthropic\Core\Exceptions\APIStatusException $e) {
         $type = $e->type?->value ?? 'unknown';
-        writeLog("AI {$feature}: API error {$type} - " . substr($e->getMessage(), 0, 300), 'ERROR');
+        writeLog("AI {$feature}: API error {$type} - " . aiErrorDetail($e), 'ERROR');
         return ['success' => false, 'status' => 502, 'message' => $type === 'billing_error'
             ? 'The AI assistant is paused (the AI account has no credit).'
             : 'The AI assistant could not answer. Please try again.'];
     } catch (\Throwable $e) {
         // Connection problems, timeouts, missing SDK classes ...
-        writeLog("AI {$feature}: " . get_class($e) . ' - ' . substr($e->getMessage(), 0, 300), 'ERROR');
+        writeLog("AI {$feature}: " . get_class($e) . ' - ' . substr(str_replace(["\r", "\n"], ' ', $e->getMessage()), 0, 300), 'ERROR');
         return ['success' => false, 'status' => 504, 'message' => 'The AI assistant took too long or could not be reached. Please try again.'];
     }
 
