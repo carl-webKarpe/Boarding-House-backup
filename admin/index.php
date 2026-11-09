@@ -24,7 +24,7 @@ $adminEmail = sanitizeForOutput($_SESSION['email'] ?? '');
 $adminRole = sanitizeForOutput(roleLabel(currentUserRole()));
 $initial = sanitizeForOutput(strtoupper(substr((string) ($_SESSION['full_name'] ?? 'A'), 0, 1)));
 $csrfToken = sanitizeForOutput(generateCsrfToken());
-$assetVersion = '20261109';
+$assetVersion = '20261109b';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full">
