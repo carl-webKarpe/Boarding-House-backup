@@ -76,7 +76,7 @@ $assetVersion = '20261025';
   <?php $isTenant = $isLoggedIn && $role === ROLE_TENANT; ?>
   <header class="sticky top-0 z-40 border-b border-white/10 bg-brand/95 text-white shadow-[0_8px_24px_-16px_rgba(0,0,0,0.5)] backdrop-blur">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-      <a href="../html/index.html" class="flex min-w-0 items-center gap-3" title="Home">
+      <a href="<?php echo $isLoggedIn ? 'browse-rooms.php' : '../html/index.html'; ?>" class="flex min-w-0 items-center gap-3" title="<?php echo $isLoggedIn ? 'Browse Rooms' : 'Home'; ?>">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-lime text-brand" aria-hidden="true">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>
         </span>
@@ -87,9 +87,11 @@ $assetVersion = '20261025';
 
       <!-- Main links (tablet and desktop) -->
       <nav class="ml-auto hidden items-center gap-1 text-sm font-semibold md:flex" aria-label="Main">
-        <a href="../html/index.html" class="nav-pill">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>Home
-        </a>
+        <?php if (!$isLoggedIn): ?>
+          <a href="../html/index.html" class="nav-pill">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>Home
+          </a>
+        <?php endif; ?>
         <a href="browse-rooms.php" class="nav-pill nav-pill-active" aria-current="page">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Browse Rooms
         </a>
@@ -144,7 +146,6 @@ $assetVersion = '20261025';
                 <span class="min-w-0"><span class="block truncate text-sm font-semibold"><?php echo $e($fullName); ?></span><span class="block text-xs text-muted"><?php echo $e(roleLabel($role)); ?></span></span>
               </div>
               <div class="my-1 border-t border-brand/10"></div>
-              <a href="../html/index.html" class="menu-item md:hidden">Home</a>
               <a href="browse-rooms.php" class="menu-item md:hidden" aria-current="page">Browse Rooms</a>
               <?php if ($isTenant): ?>
                 <button type="button" data-open-reservations class="menu-item">My Reservations</button>
