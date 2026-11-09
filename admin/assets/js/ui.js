@@ -551,6 +551,32 @@ export async function runAi(button, task, busyLabel = 'Thinking…') {
   }
 }
 
+/** Result of the AI photo check: one row per photo with a thumbnail and the AI's verdict. */
+export function aiPhotoResults(result) {
+  const look = {
+    good: ['bg-emerald-50 text-emerald-700', 'Looks good'],
+    poor_quality: ['bg-amber-50 text-amber-800', 'Poor quality'],
+    unrelated: ['bg-rose-50 text-rose-700', 'Not the rental'],
+  };
+  const flagged = result.photos.filter((p) => p.verdict !== 'good').length;
+  return html`
+    <div class="mb-5 rounded-2xl border p-4 ${flagged ? 'border-amber-200 bg-amber-50/60' : 'border-emerald-200 bg-emerald-50/60'}">
+      <p class="flex items-center gap-2 text-sm font-semibold ${flagged ? 'text-amber-800' : 'text-emerald-800'}">${icon('sparkles', 'h-4 w-4 shrink-0')}
+        AI photo check: ${flagged ? `${flagged} of ${result.checked} photo${result.checked === 1 ? '' : 's'} need attention` : `all ${result.checked} photo${result.checked === 1 ? '' : 's'} look good`}</p>
+      ${result.summary ? html`<p class="mt-1 text-sm text-slate-700">${result.summary}</p>` : ''}
+      <ul class="mt-3 grid gap-2 sm:grid-cols-2">${result.photos.map((p) => html`
+        <li class="flex gap-3 rounded-xl bg-white p-2 shadow-sm">
+          <img src="${p.url}" alt="" class="h-16 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
+          <div class="min-w-0 text-xs">
+            <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${look[p.verdict][0]}">${look[p.verdict][1]}</span>
+            <p class="mt-1 text-slate-500">${p.label}${p.shows ? ` · ${p.shows}` : ''}</p>
+            ${p.note ? html`<p class="mt-0.5 text-slate-700">${p.note}</p>` : ''}
+          </div>
+        </li>`)}</ul>
+      <p class="mt-3 text-xs text-slate-500">Advice only - it can be wrong, and nothing was changed.${result.skipped ? ` ${result.skipped} photo(s) could not be read.` : ''}</p>
+    </div>`;
+}
+
 /** Puts AI text into form fields ([[field, text], ...]) with an "Undo" link next to `button`. */
 export function fillWithUndo(button, pairs) {
   const previous = pairs.map(([field]) => field.value);

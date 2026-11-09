@@ -1,7 +1,9 @@
 /* Reports & analytics with CSV export and a print-friendly layout. */
 
 import { api } from '../api.js';
-import { html, setHtml, icon, $, $$, num, money, errorState, downloadCsv, pageHeader } from '../ui.js';
+import { html, setHtml, icon, $, $$, num, money, errorState, downloadCsv, pageHeader, aiEnabled, runAi } from '../ui.js';
+
+const ASK_EXAMPLES = ['How many bookings did we get last month?', 'Which barangay has the most listings?', 'What is the average price of a bedspace?', 'How many apartments are listed?'];
 import { lineChart, groupedBarChart, horizontalBarChart, chartTable, SERIES } from '../charts.js';
 
 function kpi(label, value, note = '') {
@@ -66,6 +68,22 @@ export async function render(container, ctx) {
           </div>
           <button type="button" class="btn btn-secondary no-print" data-print>${icon('file')} Print / PDF</button>`,
       })}
+
+      ${aiEnabled() ? html`
+        <section class="card no-print mb-6 border-primary-100 bg-gradient-to-br from-primary-50 to-white p-5" aria-label="Ask about your data">
+          <div class="flex items-center gap-2">
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white">${icon('sparkles')}</span>
+            <div><h2 class="font-semibold text-ink">Ask about your data</h2>
+              <p class="text-xs text-slate-500">The AI answers from this system's numbers only (no names or contact details). It can make mistakes.</p></div>
+          </div>
+          <form class="mt-4 flex flex-col gap-2 sm:flex-row" data-ask-form>
+            <label class="sr-only" for="askQuestion">Your question</label>
+            <input id="askQuestion" class="form-control" maxlength="300" placeholder="e.g. How many bookings did we get last month?" data-ask-input />
+            <button type="submit" class="btn btn-primary shrink-0" data-ask-go>${icon('sparkles')} Ask</button>
+          </form>
+          <div class="mt-2 flex flex-wrap gap-1.5">${ASK_EXAMPLES.map((q) => html`<button type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 hover:border-primary hover:text-primary" data-ask-example>${q}</button>`)}</div>
+          <div data-ask-result></div>
+        </section>` : ''}
 
       <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         ${kpi('Registered users', num(s.users.total), `${num(newUsers)} new in ${months} months`)}
@@ -137,6 +155,25 @@ export async function render(container, ctx) {
       load();
     }));
     $('[data-print]', container).addEventListener('click', () => window.print());
+    const askForm = $('[data-ask-form]', container);
+    askForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const question = $('[data-ask-input]', askForm).value.trim();
+      if (!question) return;
+      const res = await runAi($('[data-ask-go]', askForm), () => api.ai.ask(question), 'Thinking…');
+      if (!res) return;
+      setHtml($('[data-ask-result]', container), html`
+        <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${res.question}</p>
+          <p class="mt-1 text-sm text-slate-700">${res.answer}</p>
+          ${res.figures.length ? html`<dl class="mt-3 grid gap-2 sm:grid-cols-4">${res.figures.map((f) => html`
+            <div class="rounded-xl bg-slate-50 p-3"><dt class="text-xs text-slate-500">${f.label}</dt><dd class="mt-0.5 text-lg font-semibold text-ink">${f.value}</dd></div>`)}</dl>` : ''}
+        </div>`);
+    });
+    $$('[data-ask-example]', container).forEach((btn) => btn.addEventListener('click', () => {
+      $('[data-ask-input]', askForm).value = btn.textContent;
+      askForm.requestSubmit();
+    }));
     $$('[data-export]', container).forEach((btn) => btn.addEventListener('click', () => {
       const [headers, rows] = exports[btn.dataset.export];
       downloadCsv(`report-${btn.dataset.export}-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);

@@ -212,7 +212,10 @@ function aiGeminiJson(string $feature, string $system, array $messages, array $s
     }
     $contents = array_map(fn (array $m): array => [
         'role' => $m['role'] === 'assistant' ? 'model' : 'user',
-        'parts' => [['text' => (string) $m['content']]],
+        'parts' => [
+            ...array_map(fn (array $img): array => ['inlineData' => ['mimeType' => $img['mime'], 'data' => $img['data']]], $m['images'] ?? []),
+            ['text' => (string) $m['content']],
+        ],
     ], $messages);
 
     $model = trim((string) $config['gemini_model']) ?: BH_AI_DEFAULT_GEMINI_MODEL;
@@ -292,7 +295,49 @@ function aiGeminiJson(string $feature, string $system, array $messages, array $s
 }
 
 /**
+ * A stored photo ("uploads/listings/x.jpg") ready to send to the AI as
+ * ['mime' => ..., 'data' => base64], shrunk to at most 768 px so requests stay
+ * small and fast. Null when the file is missing or cannot be read.
+ */
+function aiImage(string $storedPath): ?array {
+    $path = BH_SYSTEM_ROOT . '/' . ltrim(str_replace('\\', '/', $storedPath), '/');
+    $real = realpath($path);
+    if ($real === false || !is_file($real) || !str_starts_with($real, realpath(BH_SYSTEM_ROOT))) {
+        return null;
+    }
+    $bytes = @file_get_contents($real);
+    if ($bytes === false || $bytes === '') {
+        return null;
+    }
+    if (function_exists('imagecreatefromstring')) {
+        $img = @imagecreatefromstring($bytes);
+        if ($img !== false) {
+            [$w, $h] = [imagesx($img), imagesy($img)];
+            $scale = min(1, 768 / max($w, $h));
+            if ($scale < 1) {
+                $small = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
+                imagecopyresampled($small, $img, 0, 0, 0, 0, imagesx($small), imagesy($small), $w, $h);
+                $img = $small;
+            }
+            ob_start();
+            imagejpeg($img, null, 75);
+            $jpeg = (string) ob_get_clean();
+            if ($jpeg !== '') {
+                return ['mime' => 'image/jpeg', 'data' => base64_encode($jpeg)];
+            }
+        }
+    }
+    // No GD: send small JPEG/PNG/WebP files as they are.
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: '';
+    if (in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true) && strlen($bytes) <= 1500000) {
+        return ['mime' => $mime, 'data' => base64_encode($bytes)];
+    }
+    return null;
+}
+
+/**
  * One request to the AI that must answer with JSON matching $schema.
+ * A message may carry photos: ['role' => 'user', 'content' => '...', 'images' => [aiImage(...), ...]].
  *
  * @param array<int, array{role: string, content: string}> $messages
  * @return array{success: bool, data?: array, message?: string, status?: int}
@@ -307,6 +352,15 @@ function aiJson(string $feature, string $system, array $messages, array $schema,
     }
 
     $config = aiConfig();
+    $messages = array_map(static function (array $m): array {
+        if (empty($m['images'])) {
+            unset($m['images']);
+            return $m;
+        }
+        $blocks = array_map(fn (array $img): array => ['type' => 'image', 'source' => ['type' => 'base64', 'mediaType' => $img['mime'], 'data' => $img['data']]], $m['images']);
+        $blocks[] = ['type' => 'text', 'text' => (string) $m['content']];
+        return ['role' => $m['role'], 'content' => $blocks];
+    }, $messages);
     $systemBlocks = [['type' => 'text', 'text' => $system]];
     if ($cacheableContext !== null) {
         // Large, rarely changing context (e.g. the room list) is cached between requests.

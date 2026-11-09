@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import {
   html, setHtml, icon, $, $$, num, fmtDate, money, badge, toast, confirmDialog, openModal, details, withLoading,
   listingBadge, thumb, priceRange, assetUrl, AVAILABILITY_OPTIONS, isWholeUnit, PROPERTY_TYPE_OPTIONS, propertyBadge,
+  aiButton, runAi, aiPhotoResults,
 } from '../ui.js';
 import { createListPage, actionButton } from '../../../../admin/assets/js/pages/_list.js';
 
@@ -53,7 +54,9 @@ export async function openHouseDetails(id, ctx, list) {
         </div>` : ''}
       ${gallery(house.images)}
       <div class="mt-5 flex flex-wrap items-center gap-2">${propertyBadge(house.property_type)}${listingBadge(house.display_status)}
-        <span class="text-xs text-slate-400">Added ${fmtDate(house.created_at)}${house.updated_at ? ` · updated ${fmtDate(house.updated_at)}` : ''}</span></div>
+        <span class="text-xs text-slate-400">Added ${fmtDate(house.created_at)}${house.updated_at ? ` · updated ${fmtDate(house.updated_at)}` : ''}</span>
+        <span class="ml-auto">${house.images.length ? aiButton('data-ai-photos', 'Check my photos with AI') : ''}</span></div>
+      <div class="mt-4" data-ai-photo-result></div>
       <div class="mt-5">${details([
         ['Complete address', house.address],
         ['Barangay', house.barangay],
@@ -79,6 +82,10 @@ export async function openHouseDetails(id, ctx, list) {
       <a href="#/edit-house?id=${house.id}" class="btn btn-primary" data-close>${icon('edit')} Edit</a>`,
   });
   wireGallery(modal.el);
+  $('[data-ai-photos]', modal.el)?.addEventListener('click', async (event) => {
+    const res = await runAi(event.currentTarget, () => api.ai.photos(house.id), 'Looking at the photos…');
+    if (res) setHtml($('[data-ai-photo-result]', modal.el), aiPhotoResults(res));
+  });
   return modal;
 }
 

@@ -84,6 +84,9 @@ export const api = {
   stats: (months = 6) => request('GET', 'stats.php', { query: { months } }).then((r) => r.data),
   ai: {
     reviewListing: (houseId) => request('POST', 'ai-review.php', { body: { house_id: houseId } }).then((r) => r.data),
+    photos: (houseId) => request('POST', 'ai-photos.php', { body: { house_id: houseId } }).then((r) => r.data),
+    safety: (days) => request('POST', 'ai-safety.php', { body: { days } }).then((r) => r.data),
+    ask: (question) => request('POST', 'ai-ask.php', { body: { question } }).then((r) => r.data),
     summary: (refresh = false) => request('GET', 'ai-summary.php', { query: refresh ? { refresh: 1 } : {} }).then((r) => r.data),
   },
   reports: (months = 6) => request('GET', 'reports.php', { query: { months } }).then((r) => r.data),

@@ -150,6 +150,7 @@ export const api = {
   ai: {
     write: (body) => request('POST', 'ai-writer.php', { body }).then((r) => r.data),
     reply: (body) => request('POST', 'ai-reply.php', { body }).then((r) => r.data),
+    photos: (houseId) => request('POST', 'ai-photos.php', { body: { house_id: houseId } }).then((r) => r.data),
   },
 
   notifications: {

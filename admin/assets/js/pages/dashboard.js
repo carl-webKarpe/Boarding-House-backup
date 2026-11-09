@@ -1,7 +1,7 @@
 /* Dashboard overview: statistic cards, charts, approvals queue, recent activity. */
 
 import { api } from '../api.js';
-import { html, setHtml, icon, $, num, timeAgo, fmtDate, errorState, aiEnabled, runAi } from '../ui.js';
+import { html, setHtml, icon, $, num, timeAgo, fmtDate, fmtDateTime, errorState, aiEnabled, runAi } from '../ui.js';
 import { lineChart, horizontalBarChart, chartTable, BRAND } from '../charts.js';
 
 export const ACTIVITY_STYLES = {
@@ -74,6 +74,31 @@ function animateCounts(root) {
 }
 
 /** Fills the AI summary card (api/admin/ai-summary.php; kept 30 minutes on the server). */
+/** Flagged messages from the AI chat safety check (texts and names come from the database). */
+function safetyResults(res) {
+  const sev = { high: 'bg-rose-100 text-rose-700', medium: 'bg-amber-100 text-amber-800', low: 'bg-slate-100 text-slate-600' };
+  const cat = { scam: 'Possible scam', harassment: 'Harassment', discrimination: 'Discrimination', personal_info: 'Asks for private info', spam: 'Spam', other: 'Other' };
+  return html`
+    <div class="mt-4 rounded-2xl border p-4 ${res.flagged.length ? 'border-rose-200 bg-rose-50/50' : 'border-emerald-200 bg-emerald-50/60'}">
+      <p class="text-sm font-semibold ${res.flagged.length ? 'text-rose-700' : 'text-emerald-800'}">
+        ${res.flagged.length ? `${res.flagged.length} of ${res.scanned} message${res.scanned === 1 ? '' : 's'} may need your attention` : `Checked ${res.scanned} message${res.scanned === 1 ? '' : 's'} - nothing unsafe found`}
+        <span class="font-normal text-slate-500">(last ${res.days} days)</span></p>
+      ${res.summary ? html`<p class="mt-1 text-sm text-slate-700">${res.summary}</p>` : ''}
+      ${res.flagged.length ? html`<ul class="mt-3 space-y-2">${res.flagged.map((f) => html`
+        <li class="rounded-xl bg-white p-3 shadow-sm">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-full px-2 py-0.5 font-bold uppercase ${sev[f.severity]}">${f.severity}</span>
+            <span class="font-semibold text-ink">${cat[f.category] || f.category}</span>
+            <span class="text-slate-400">· ${f.kind} from the ${f.from} · ${fmtDateTime(f.sent_at)}</span>
+          </div>
+          <p class="mt-1.5 rounded-lg bg-slate-50 p-2 text-sm text-slate-700">"${f.text}"</p>
+          <p class="mt-1 text-xs text-slate-600"><strong>Why:</strong> ${f.reason}</p>
+          <p class="mt-0.5 text-xs text-slate-400">Landlord: ${f.landlord} · Student: ${f.student}</p>
+        </li>`)}</ul>` : ''}
+      <p class="mt-3 text-xs text-slate-500">The AI only flags messages; it can be wrong and nothing was changed. You decide what to do.</p>
+    </div>`;
+}
+
 async function loadAiSummary(container, refresh = false) {
   const box = $('[data-ai-summary]', container);
   if (!box) return;
@@ -143,6 +168,25 @@ export async function render(container, ctx) {
             <button type="button" class="btn btn-secondary btn-sm" data-ai-refresh>${icon('refresh')} Refresh</button>
           </div>
           <div class="mt-4" data-ai-summary><div class="skeleton h-5 w-2/3"></div><div class="skeleton mt-2 h-4 w-1/2"></div></div>
+        </section>
+
+        <section class="card fade-up mt-6 p-5" aria-label="AI chat safety check">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 text-rose-600">${icon('shield')}</span>
+              <div><h2 class="font-semibold text-ink">AI chat safety check</h2>
+                <p class="text-xs text-slate-500">Looks for scams, harassment and unsafe requests in recent chats and inquiries. Phone numbers, emails and names are hidden from the AI.</p></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="sr-only" for="safetyDays">Period</label>
+              <select id="safetyDays" class="form-control py-1.5 text-sm" data-safety-days>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" data-safety-scan>${icon('sparkles')} Scan messages</button>
+            </div>
+          </div>
+          <div data-safety-result></div>
         </section>` : ''}
 
       <section class="mt-6 grid gap-6 xl:grid-cols-3">
@@ -215,6 +259,11 @@ export async function render(container, ctx) {
 
     animateCounts(container);
     loadAiSummary(container);
+    $('[data-safety-scan]', container)?.addEventListener('click', async (event) => {
+      const days = Number($('[data-safety-days]', container).value);
+      const res = await runAi(event.currentTarget, () => api.ai.safety(days), 'Scanning…');
+      if (res) setHtml($('[data-safety-result]', container), safetyResults(res));
+    });
     $('[data-ai-refresh]', container)?.addEventListener('click', (event) => runAi(event.currentTarget, () => loadAiSummary(container, true), 'Writing…'));
 
     lineChart($('#chartRegistrations', container), charts.labels, [

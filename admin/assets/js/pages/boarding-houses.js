@@ -1,7 +1,7 @@
 /* Boarding house listings: review, approve/reject, edit, photos, delete. */
 
 import { api } from '../api.js';
-import { html, raw, icon, badge, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading, aiButton, runAi, setHtml } from '../ui.js';
+import { html, raw, icon, badge, money, num, fmtDate, fmtDateTime, toast, confirmDialog, openModal, formModal, details, $, $$, withLoading, aiButton, runAi, aiPhotoResults, setHtml } from '../ui.js';
 import { createListPage, actionButton } from './_list.js';
 
 const STATUS_OPTIONS = [
@@ -163,7 +163,8 @@ export async function render(view, ctx) {
       body: html`
         <div class="mb-5 flex flex-wrap items-center gap-2">${badge(house.status, house.status === 'pending' ? 'Pending approval' : '')}
           ${house.status === 'rejected' && house.rejection_reason ? html`<span class="text-sm text-rose-600">Reason: ${house.rejection_reason}</span>` : ''}
-          <span class="ml-auto">${aiButton('data-ai-check', 'AI listing check')}</span></div>
+          <span class="ml-auto flex flex-wrap gap-2">${aiButton('data-ai-photos', 'AI photo check')}${aiButton('data-ai-check', 'AI listing check')}</span></div>
+        <div data-ai-photo-result></div>
         <div data-ai-result></div>
 
         <div class="grid gap-4 sm:grid-cols-3">
@@ -205,6 +206,11 @@ export async function render(view, ctx) {
         ${house.status === 'approved' || house.status === 'inactive' ? html`<button type="button" class="btn btn-secondary" data-inactive>${house.status === 'inactive' ? 'Re-activate' : 'Deactivate'}</button>` : ''}
         <button type="button" class="btn btn-secondary" data-edit>${icon('edit')} Edit</button>
         <button type="button" class="btn btn-secondary" data-close>Close</button>`,
+    });
+
+    $('[data-ai-photos]', modal.el)?.addEventListener('click', async (event) => {
+      const res = await runAi(event.currentTarget, () => api.ai.photos(house.id), 'Looking at the photos…');
+      if (res) setHtml($('[data-ai-photo-result]', modal.el), aiPhotoResults(res));
     });
 
     $('[data-ai-check]', modal.el)?.addEventListener('click', async (event) => {

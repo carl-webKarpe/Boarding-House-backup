@@ -16,6 +16,8 @@
   const PER_PAGE = 6;
   const POLL_MS = 30000;
   const body = document.body;
+  const aiOn = body.dataset.ai === "1";
+  const compareIds = new Set(); // rooms ticked for the AI comparison (max 3)
   const me = {
     loggedIn: body.dataset.loggedIn === "1",
     role: body.dataset.role || "",
@@ -314,6 +316,7 @@
             <button type="button" class="btn-primary" data-details="${room.id}">More Details</button>
             <button type="button" class="btn-lime" data-reserve="${room.id}" ${canReserve ? "" : 'disabled title="This room is full"'}>${icon("calendar")} Reserve</button>
             <button type="button" class="btn-outline" data-contact="${room.id}">${icon("message")} Contact Landlord</button>
+            ${aiOn ? `<button type="button" class="compare-toggle" data-compare="${room.id}" aria-pressed="${compareIds.has(room.id)}">${icon("check", "h-3.5 w-3.5")} Compare</button>` : ""}
           </div>
         </div>
         <div class="order-1 md:order-2">${galleryHtml(room.images, { alt: `${room.house.name} ${room.room_number}` })}</div>
@@ -502,6 +505,15 @@
               ${fact("Distance from school", esc(distanceText(room)))}
               ${room.size_sqm ? fact(isUnit(room) ? "Unit size" : "Room size", `${esc(room.size_sqm)} m²`) : ""}
             </dl>
+            ${aiOn ? `
+              <div class="mt-5 rounded-2xl border border-brand/10 bg-mint/40 p-4" data-cost-box>
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="flex-1 text-sm font-semibold text-brand">How much will I really pay each month?</p>
+                  ${isShared(room) && room.capacity > 1 ? `<label class="flex items-center gap-1.5 text-xs text-muted">People <input type="number" min="1" max="${room.capacity}" value="1" class="field w-16 py-1.5" data-cost-people /></label>` : ""}
+                  <button type="button" class="btn-outline btn-sm" data-cost="${room.id}">${icon("sparkles", "h-4 w-4")} Estimate with AI</button>
+                </div>
+                <div data-cost-result></div>
+              </div>` : ""}
             <h3 class="mt-6 font-display text-base font-semibold text-brand">Amenities</h3>
             ${room.amenities.length ? `<ul class="mt-2 grid gap-2 sm:grid-cols-2">${room.amenities.map((a) => `<li class="flex items-center gap-2 text-sm text-ink"><span class="grid h-6 w-6 place-items-center rounded-full bg-mint text-brand">${icon("check", "h-3.5 w-3.5")}</span>${esc(a)}</li>`).join("")}</ul>` : '<p class="mt-1 text-sm text-muted">The landlord has not listed amenities yet.</p>'}
             ${room.description ? `<h3 class="mt-6 font-display text-base font-semibold text-brand">Description</h3><p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink/80">${esc(room.description)}</p>` : ""}
@@ -1139,6 +1151,102 @@
     });
   }
   initRoomFinder();
+
+  /* ---------------------------------------------------------------- *
+   * AI compare rooms (api/ai-compare.php) and monthly cost (api/ai-cost.php)
+   * ---------------------------------------------------------------- */
+  function initAiStudentTools() {
+    if (!aiOn) return;
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="compare-bar" data-compare-bar hidden role="region" aria-label="Compare rooms">
+        <span class="text-sm font-semibold" data-compare-count></span>
+        <button type="button" class="btn-lime btn-sm" data-compare-go>${icon("sparkles", "h-4 w-4")} Compare with AI</button>
+        <button type="button" class="text-xs font-semibold text-white/80 underline-offset-2 hover:underline" data-compare-clear>Clear</button>
+      </div>`);
+    const bar = $("[data-compare-bar]");
+
+    const syncCompare = () => {
+      const n = compareIds.size;
+      bar.hidden = n === 0;
+      $("[data-compare-count]", bar).textContent = n < 2 ? `${n} room selected · pick 1 or 2 more` : `${n} rooms selected`;
+      $("[data-compare-go]", bar).disabled = n < 2;
+      $$("[data-compare]").forEach((b) => b.setAttribute("aria-pressed", String(compareIds.has(Number(b.dataset.compare)))));
+    };
+
+    document.addEventListener("click", (e) => {
+      const toggle = e.target.closest("[data-compare]");
+      if (toggle) {
+        const id = Number(toggle.dataset.compare);
+        if (compareIds.has(id)) compareIds.delete(id);
+        else if (compareIds.size >= 3) { toast("You can compare up to 3 rooms at a time.", "info"); return; }
+        else compareIds.add(id);
+        syncCompare();
+        return;
+      }
+      if (e.target.closest("[data-compare-clear]")) { compareIds.clear(); syncCompare(); return; }
+      if (e.target.closest("[data-compare-go]")) { openComparison(); return; }
+      const cost = e.target.closest("[data-cost]");
+      if (cost) estimateCost(cost);
+    });
+
+    async function openComparison() {
+      const dlg = openDialog({ title: "AI room comparison", subtitle: "Written by AI from the listings. It can make mistakes.", size: "max-w-4xl",
+        content: `<div class="space-y-3 p-6"><div class="skeleton h-5 w-2/3"></div><div class="skeleton h-24"></div><div class="skeleton h-16"></div></div>` });
+      try {
+        const { data } = await api("POST", "ai-compare.php", { data: { room_ids: [...compareIds] } });
+        const name = (id) => { const r = data.rooms.find((x) => x.id === id); return r ? `${r.house} · ${r.room_number}` : ""; };
+        const row = (label, fn) => `<tr class="border-t border-brand/10"><th scope="row" class="py-2 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">${label}</th>${data.rooms.map((r) => `<td class="py-2 pr-3 text-sm text-ink">${fn(r)}</td>`).join("")}</tr>`;
+        dlg.setContent(`
+          <div class="space-y-5 p-5 sm:p-6">
+            <p class="rounded-2xl bg-mint/60 p-4 text-sm leading-relaxed text-brand">${esc(data.summary)}</p>
+            <div class="overflow-x-auto"><table class="w-full min-w-[480px]">
+              <thead><tr><th></th>${data.rooms.map((r) => `<th scope="col" class="pb-2 pr-3 text-left align-bottom"><span class="block font-display text-sm font-semibold text-brand">${esc(r.house)}</span><span class="text-xs text-muted">${esc(r.room_number)}</span></th>`).join("")}</tr></thead>
+              <tbody>
+                ${row("Type", (r) => esc(r.type))}
+                ${row("Rent", (r) => `${peso(r.price)}<span class="text-xs text-muted"> / ${r.per_person ? "person / month" : "month"}</span>`)}
+                ${row("Deposit", (r) => (r.deposit ? peso(r.deposit) : "None"))}
+                ${row("Distance", (r) => esc(r.distance || "Not set"))}
+                ${row("", (r) => `<button type="button" class="btn-outline btn-sm" data-details="${r.id}">View</button>`)}
+              </tbody></table></div>
+            ${data.best_for.length ? `<div><h3 class="font-display text-base font-semibold text-brand">Best for</h3><ul class="mt-2 grid gap-2 sm:grid-cols-2">${data.best_for.map((b) => `
+              <li class="rounded-2xl border border-brand/10 p-3 text-sm"><p class="font-semibold text-ink">${esc(b.need)}</p><p class="text-brand">${esc(name(b.room_id))}</p>${b.why ? `<p class="mt-0.5 text-xs text-muted">${esc(b.why)}</p>` : ""}</li>`).join("")}</ul></div>` : ""}
+            ${data.differences.length ? `<div><h3 class="font-display text-base font-semibold text-brand">Main differences</h3><ul class="mt-2 space-y-1.5">${data.differences.map((d) => `<li class="flex gap-2 text-sm text-ink">${icon("check", "mt-0.5 h-4 w-4 shrink-0 text-brand")}<span>${esc(d)}</span></li>`).join("")}</ul></div>` : ""}
+            <p class="text-xs text-muted">Prices and distances come from the listings; the explanation is written by AI and can be wrong. Check the details before you reserve.</p>
+          </div>`);
+      } catch (error) {
+        dlg.setContent(`<div class="p-8 text-center"><p class="font-semibold text-rose-700">${esc(error.message)}</p><button type="button" class="btn-outline mt-4" data-close>Close</button></div>`);
+      }
+    }
+
+    async function estimateCost(button) {
+      const box = button.closest("[data-cost-box]");
+      const result = $("[data-cost-result]", box);
+      const people = Number($("[data-cost-people]", box)?.value || 1);
+      const original = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = `<span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span> Estimating…`;
+      try {
+        const { data } = await api("POST", "ai-cost.php", { data: { room_id: Number(button.dataset.cost), occupants: people } });
+        const range = (lo, hi) => (lo === hi ? peso(lo) : `${peso(lo)} – ${peso(hi)}`);
+        result.innerHTML = `
+          <dl class="mt-3 divide-y divide-brand/10 rounded-2xl bg-white text-sm">
+            <div class="flex justify-between gap-3 px-3 py-2"><dt>Rent${data.room.per_person && data.occupants > 1 ? ` (${data.occupants} people)` : ""}</dt><dd class="font-semibold">${peso(data.rent)}</dd></div>
+            ${data.extras.map((x) => `<div class="flex justify-between gap-3 px-3 py-2"><dt>${esc(x.item)}${x.note ? `<span class="block text-xs text-muted">${esc(x.note)}</span>` : ""}</dt><dd class="shrink-0 font-semibold">${range(x.low, x.high)}</dd></div>`).join("")}
+            <div class="flex justify-between gap-3 bg-mint/60 px-3 py-2 font-semibold text-brand"><dt>Estimated each month</dt><dd>${range(data.monthly_low, data.monthly_high)}</dd></div>
+            <div class="flex justify-between gap-3 px-3 py-2"><dt>To move in (first month + deposit)</dt><dd class="font-semibold">${peso(data.move_in)}</dd></div>
+          </dl>
+          ${data.summary ? `<p class="mt-2 text-sm text-ink">${esc(data.summary)}</p>` : ""}
+          ${data.tips.length ? `<p class="mt-2 text-xs font-semibold text-brand">Ask the landlord:</p><ul class="mt-1 list-disc space-y-0.5 pl-5 text-xs text-ink">${data.tips.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+          <p class="mt-2 text-[11px] text-muted">Rent and deposit come from the listing. Other costs are AI estimates - confirm them with the landlord.</p>`;
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        button.disabled = false;
+        button.innerHTML = original;
+      }
+    }
+  }
+  initAiStudentTools();
 
   /* ---------------------------------------------------------------- *
    * Start

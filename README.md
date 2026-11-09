@@ -257,6 +257,11 @@ Five small AI helpers, all off until you add an API key:
 | Landlords | Inquiries and Chat | **Suggest a reply**: drafts an answer to the student; the landlord edits and sends it. |
 | Admins | Boarding Houses → details | **AI listing check**: a second opinion (missing info, odd prices, warning signs). |
 | Admins | Dashboard | **AI summary** of the site's numbers (cached 30 minutes, **Refresh** button). |
+| Students | Browse Rooms → **Compare** on 2-3 cards | **Compare with AI**: plain-words differences and "best for" (prices and distances come from the database). |
+| Students | Browse Rooms → More Details | **Estimate with AI**: rent, deposit and move-in total calculated from the listing, plus likely extra costs (electricity, WiFi...) from the house rules. |
+| Landlords / Admins | My Properties / Properties → details | **AI photo check**: looks at up to 10 photos and flags poor or unrelated ones (photos are shrunk to 768 px before sending). |
+| Admins | Dashboard | **AI chat safety check**: scans the last 7 or 30 days of chats and inquiries for scams, harassment or unsafe requests. Names are not sent; phone numbers and emails are replaced by [phone] / [email]. |
+| Admins | Reports | **Ask about your data**: answers questions from a fixed set of counts computed by the server (the AI never runs queries). |
 
 Setup:
 
