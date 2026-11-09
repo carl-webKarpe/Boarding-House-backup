@@ -817,3 +817,58 @@ main > section { padding: 100px 24px; }
 /* Listing details loaded from the database */
 .modal__description { margin: 0.75rem 0 1.25rem; line-height: 1.6; opacity: 0.85; }
 .modal__amenities p { margin: 0.25rem 0 0; line-height: 1.6; white-space: pre-line; }
+
+/* ---------------------------------------------------------------------- *
+ * Intro animation (html/index.html) - once per visit, or with ?intro=1
+ * ---------------------------------------------------------------------- */
+.intro { display: none; }
+html.show-intro { overflow: hidden; }
+html.show-intro .intro {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+  padding: 24px; text-align: center; color: var(--white); cursor: pointer;
+  background: radial-gradient(circle at 50% 38%, #0d5a53 0%, var(--dark-green) 55%, #042b28 100%);
+}
+.intro.is-leaving { animation: intro-leave .75s cubic-bezier(.7, 0, .3, 1) forwards; }
+
+.intro__glow {
+  position: absolute; width: 520px; height: 520px; max-width: 120vw; max-height: 120vw; border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 241, 90, .22) 0%, rgba(168, 241, 90, 0) 65%);
+  animation: intro-glow 2.6s ease-out both;
+}
+.intro__house { position: relative; width: 132px; height: 132px; overflow: visible; }
+.intro__house .draw {
+  fill: none; stroke: var(--lime); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 400; stroke-dashoffset: 400; animation: intro-draw 1.1s ease-in-out forwards;
+}
+.intro__house .draw--roof { animation-delay: .15s; }
+.intro__house .draw--walls { animation-delay: .45s; }
+.intro__house .draw--door { animation-delay: .8s; }
+.intro__house .fill { fill: var(--lime); opacity: 0; animation: intro-fill .5s ease-out 1.25s forwards; }
+.intro__house .window { fill: var(--gold); opacity: 0; transform-origin: center; transform-box: fill-box; animation: intro-light .45s ease-out 1.55s forwards; }
+
+.intro__title { position: relative; margin: 0; color: var(--white); font-family: var(--font-display); font-weight: 800; line-height: 1.05; letter-spacing: .04em; }
+.intro__line--1 span { color: var(--white); text-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+.intro__line { display: block; overflow: hidden; }
+.intro__line span { display: inline-block; transform: translateY(110%); animation: intro-rise .7s cubic-bezier(.2, .8, .2, 1) forwards; }
+.intro__line--1 span { font-size: clamp(1.9rem, 6vw, 3.4rem); animation-delay: 1.15s; }
+.intro__line--2 span { font-size: clamp(1.1rem, 3.4vw, 1.9rem); color: var(--lime); letter-spacing: .32em; animation-delay: 1.35s; }
+.intro__tagline { position: relative; margin: 0; font-size: clamp(.9rem, 2.4vw, 1.05rem); color: rgba(255, 255, 255, .78); opacity: 0; animation: intro-fade .6s ease-out 1.75s forwards; }
+
+.intro__bar { position: relative; width: min(260px, 70vw); height: 4px; border-radius: 999px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.intro__bar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--lime); transform: scaleX(0); transform-origin: left; animation: intro-load 2.4s ease-in-out .2s forwards; }
+
+.intro__skip {
+  position: absolute; right: 20px; bottom: 20px; padding: .55rem 1.1rem; border: 1px solid rgba(255, 255, 255, .35); border-radius: 999px;
+  background: transparent; color: var(--white); font: 600 .85rem var(--font-body); cursor: pointer; transition: background .2s, color .2s;
+}
+.intro__skip:hover, .intro__skip:focus-visible { background: var(--lime); color: var(--dark-green); outline: none; }
+
+@keyframes intro-draw { to { stroke-dashoffset: 0; } }
+@keyframes intro-fill { to { opacity: .18; } }
+@keyframes intro-light { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-rise { to { transform: translateY(0); } }
+@keyframes intro-fade { to { opacity: 1; } }
+@keyframes intro-load { to { transform: scaleX(1); } }
+@keyframes intro-glow { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-leave { to { transform: translateY(-100%); opacity: .6; } }

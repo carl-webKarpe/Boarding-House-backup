@@ -13,9 +13,62 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 
-<link rel="stylesheet" href="../home.css?v=20261109" />
+<link rel="stylesheet" href="../home.css?v=20261110" />
+<script>
+  // Intro animation: once per visit (or with ?intro=1), never for "reduce motion" users.
+  (function () {
+    try {
+      var force = /[?&]intro=1\b/.test(location.search);
+      var seen = sessionStorage.getItem('bh_intro_seen') === '1';
+      var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (force || (!seen && !calm)) document.documentElement.classList.add('show-intro');
+    } catch (e) { /* no storage: just show the landing page */ }
+  })();
+</script>
 </head>
 <body>
+
+<!-- ============================================================
+     INTRO ANIMATION (plays before the landing page)
+============================================================ -->
+<div class="intro" id="intro" role="presentation">
+  <div class="intro__glow" aria-hidden="true"></div>
+  <svg class="intro__house" viewBox="0 0 120 120" aria-hidden="true">
+    <path class="fill" d="M24 56 60 26l36 30v44H24Z" />
+    <path class="draw draw--roof" d="M12 60 60 20l48 40" />
+    <path class="draw draw--walls" d="M24 52v48h72V52" />
+    <path class="draw draw--door" d="M50 100V74h20v26" />
+    <rect class="window" x="34" y="62" width="11" height="11" rx="2" />
+    <rect class="window" x="75" y="62" width="11" height="11" rx="2" />
+  </svg>
+  <h1 class="intro__title">
+    <span class="intro__line intro__line--1"><span>BOARDING HOUSE</span></span>
+    <span class="intro__line intro__line--2"><span>RENTAL SYSTEM</span></span>
+  </h1>
+  <p class="intro__tagline">Boarding houses &amp; apartments near SIIT · Dapa, Surigao del Norte</p>
+  <div class="intro__bar" aria-hidden="true"></div>
+  <button type="button" class="intro__skip" data-intro-skip>Skip intro</button>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var intro = document.getElementById('intro');
+    if (!root.classList.contains('show-intro')) { intro.remove(); return; }
+    try { sessionStorage.setItem('bh_intro_seen', '1'); } catch (e) { /* ignore */ }
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      intro.classList.add('is-leaving');
+      setTimeout(function () { root.classList.remove('show-intro'); intro.remove(); }, 750);
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') finish(); }
+    intro.addEventListener('click', finish);
+    document.addEventListener('keydown', onKey);
+    setTimeout(finish, 2900);
+  })();
+</script>
 
 <!-- ============================================================
      NAVIGATION BAR
