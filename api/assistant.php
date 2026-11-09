@@ -22,7 +22,7 @@ apiBootstrap();
 requireMethod('POST');
 requireCsrf();
 
-const ASSISTANT_TYPES = ['solo' => 'Single Room', 'shared' => 'Shared Room', 'dormitory' => 'Bedspace', 'studio' => 'Studio'];
+const ASSISTANT_TYPES = ['solo' => 'Single Room', 'shared' => 'Shared Room', 'dormitory' => 'Bedspace', 'studio' => 'Studio', 'apartment' => 'Apartment Unit'];
 const ASSISTANT_SCHOOL = [9.760829, 126.047129]; // SIIT, Dapa
 
 $who = isLoggedIn() ? 'user:' . currentUserId() : 'guest:' . session_id();
@@ -51,7 +51,7 @@ if (!$messages || end($messages)['role'] !== 'user') {
 // ---- The rooms that are listed right now --------------------------------
 $pdo = getDb();
 $rows = $pdo->query("SELECT r.id, r.room_number, r.room_type, r.price, r.deposit, r.capacity, r.occupants, r.size_sqm,
-        bh.name AS house, bh.barangay, bh.city, bh.latitude, bh.longitude, bh.availability_status,
+        bh.name AS house, bh.property_type, bh.barangay, bh.city, bh.latitude, bh.longitude, bh.availability_status,
         (SELECT COALESCE(SUM(b.occupants_count), 0) FROM bookings b WHERE b.room_id = r.id AND b.status = 'pending') AS pending,
         (SELECT GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') FROM room_amenities ra JOIN amenities a ON a.id = ra.amenity_id WHERE ra.room_id = r.id) AS amenities
     FROM rooms r
@@ -79,7 +79,8 @@ foreach ($rows as $row) {
     $id = (int) $row['id'];
     $free = $row['availability_status'] === 'fully_occupied' ? 0 : max(0, (int) $row['capacity'] - (int) $row['occupants']);
     $meters = $distance($row['latitude'], $row['longitude']);
-    $shared = !in_array($row['room_type'], ['solo', 'studio'], true);
+    $shared = !isWholeUnit((string) $row['room_type']);
+    $unit = $row['room_type'] === 'apartment';
     $rooms[$id] = [
         'id' => $id,
         'house' => $row['house'],
@@ -93,10 +94,13 @@ foreach ($rows as $row) {
     $lines[] = implode(' | ', array_filter([
         "#{$id}",
         $row['house'] . ' - ' . $row['room_number'],
+        propertyTypeLabel($row['property_type']),
         $rooms[$id]['type'],
         'PHP ' . number_format((float) $row['price']) . ($shared ? ' per person' : '') . ' a month',
         (float) $row['deposit'] > 0 ? 'deposit PHP ' . number_format((float) $row['deposit']) : 'no deposit',
-        $free > 0 ? "{$free} of {$row['capacity']} slots free" . ((int) $row['pending'] >= $free ? ' (all requested, pending)' : '') : 'FULL',
+        $unit
+            ? ($free > 0 ? "whole unit for up to {$row['capacity']} people, vacant" . ((int) $row['pending'] > 0 ? ' (requested, pending)' : '') : 'FULL (occupied)')
+            : ($free > 0 ? "{$free} of {$row['capacity']} slots free" . ((int) $row['pending'] >= $free ? ' (all requested, pending)' : '') : 'FULL'),
         trim(($row['barangay'] ?: '') . ', ' . $row['city'], ', '),
         $rooms[$id]['distance'],
         $row['size_sqm'] ? $row['size_sqm'] . ' m²' : null,
@@ -105,14 +109,14 @@ foreach ($rows as $row) {
 }
 
 $system = <<<TXT
-You are the room finder of the Boarding House Rental System, a website where students of SIIT (Siargao Island Institute of Technology) in Dapa, Surigao del Norte find boarding houses.
+You are the room finder of the Boarding House Rental System, a website where students of SIIT (Siargao Island Institute of Technology) in Dapa, Surigao del Norte find boarding houses and apartments.
 
 Help the student find rooms that match what they ask (budget, room type, number of people, amenities, barangay, distance from SIIT).
 
 Rules:
 - Recommend ONLY rooms from the room list you are given, by their #id. Never invent rooms, prices, amenities or availability. Put the ids of the rooms you recommend in room_ids (best match first, at most 5). Prefer rooms with free slots; never recommend a FULL room as available.
 - If nothing matches, say so honestly and suggest what to relax (budget, room type, distance). If the list is empty, say no rooms are listed yet.
-- Prices are in Philippine pesos (₱). Shared rooms and bedspaces are priced per person.
+- Prices are in Philippine pesos (₱). Shared rooms and bedspaces are priced per person; single rooms and apartment units are priced for the whole room or unit. An apartment unit is rented whole by one tenant or family.
 - Keep the reply short and friendly: at most about 120 words, plain text, no markdown tables. Reply in the language the student uses (English, Filipino/Tagalog or Cebuano/Bisaya).
 - You cannot reserve, pay or contact landlords. Tell the student to press "View" to see photos and details, and "Reserve" or "Contact Landlord" on the room.
 - Only talk about finding a room on this website. For anything else, kindly bring the conversation back to rooms.

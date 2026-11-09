@@ -8,7 +8,8 @@ declare(strict_types=1);
  *   GET api/rooms.php                 newest rooms first
  *       ?page=1&per_page=6
  *       &q=        search boarding house, barangay, city, address
- *       &type=     solo | shared | dormitory | studio
+ *       &type=     solo | shared | dormitory | studio | apartment
+ *       &property= boarding_house | apartment
  *       &max_price=
  *       &available=1   only rooms with an open slot
  *       &sort=     newest (default) | price_asc | price_desc | nearest
@@ -37,6 +38,7 @@ const ROOM_TYPE_LABELS = [
     'shared' => 'Shared Room',
     'dormitory' => 'Bedspace',
     'studio' => 'Studio',
+    'apartment' => 'Apartment Unit',
 ];
 
 // Siargao Island Institute of Technology, National Highway, Dapa.
@@ -55,7 +57,7 @@ const ROOM_BASE_WHERE = "bh.status = 'approved' AND bh.availability_status <> 't
 const ROOM_SELECT = "SELECT r.id, r.room_number, r.room_type, r.price, r.deposit, r.capacity, r.occupants, r.size_sqm,
     r.description AS room_description, r.status, r.created_at, r.updated_at,
     GREATEST(r.created_at, COALESCE(r.updated_at, r.created_at), COALESCE(bh.updated_at, bh.created_at)) AS last_change,
-    bh.id AS house_id, bh.name AS house_name, bh.description AS house_description, bh.address, bh.barangay, bh.city, bh.province,
+    bh.id AS house_id, bh.property_type, bh.name AS house_name, bh.description AS house_description, bh.address, bh.barangay, bh.city, bh.province,
     bh.latitude, bh.longitude, bh.map_url, bh.location_note, bh.distance_note, bh.availability_status AS house_availability,
     bh.contact_name, bh.nearby_school, bh.contact_number AS house_contact, bh.contact_email AS house_email, bh.house_rules,
     u.id AS landlord_user_id, u.first_name, u.last_name, u.contact_number AS landlord_contact, u.avatar_path,
@@ -124,6 +126,10 @@ function formatRoom(array $row, array $amenities, array $roomPhotos, array $hous
     // A listing the landlord marked "Fully Occupied" has no open slot, whatever the room counts say.
     $open = $row['house_availability'] === 'fully_occupied' ? 0 : max(0, $capacity - $occupants);
     $pending = (int) $row['pending_slots'];
+    // One pending request is enough to hold a whole apartment unit.
+    if ($row['room_type'] === 'apartment' && $pending > 0) {
+        $pending = $open;
+    }
     $lat = $row['latitude'] !== null ? (float) $row['latitude'] : null;
     $lng = $row['longitude'] !== null ? (float) $row['longitude'] : null;
 
@@ -150,8 +156,11 @@ function formatRoom(array $row, array $amenities, array $roomPhotos, array $hous
         'updated_at' => $row['last_change'],
         'distance_m' => distanceToSchool($lat, $lng),
         'school' => SCHOOL_NAME,
+        'whole_unit' => isWholeUnit((string) $row['room_type']),
         'house' => [
             'id' => $houseId,
+            'property_type' => $row['property_type'],
+            'property_type_label' => propertyTypeLabel($row['property_type']),
             'name' => $row['house_name'],
             'location' => implode(', ', array_filter([$row['barangay'] ?: $row['address'], $row['city']])),
             'barangay' => $row['barangay'],
@@ -227,6 +236,12 @@ $type = queryString('type');
 if (isset(ROOM_TYPE_LABELS[$type])) {
     $where[] = 'r.room_type = :type';
     $params[':type'] = $type;
+}
+
+$property = queryString('property');
+if (isset(PROPERTY_TYPE_LABELS[$property])) {
+    $where[] = 'bh.property_type = :property';
+    $params[':property'] = $property;
 }
 
 if (is_numeric($_GET['max_price'] ?? null) && (float) $_GET['max_price'] > 0) {
@@ -311,7 +326,7 @@ foreach ($groups as $members) {
 $total = count($cards);
 $pageCards = array_slice($cards, $pagination['offset'], $pagination['per_page']);
 
-$summary = $pdo->query("SELECT COUNT(*) AS rooms, COALESCE(SUM(r.occupants < r.capacity AND bh.availability_status = 'available'), 0) AS available, COUNT(DISTINCT bh.id) AS houses, MIN(r.price) AS min_price "
+$summary = $pdo->query("SELECT COUNT(*) AS rooms, COALESCE(SUM(r.occupants < r.capacity AND bh.availability_status = 'available'), 0) AS available, COUNT(DISTINCT bh.id) AS houses, COUNT(DISTINCT IF(bh.property_type = 'apartment', bh.id, NULL)) AS apartments, MIN(r.price) AS min_price "
     . ROOM_BASE_FROM . ' WHERE ' . ROOM_BASE_WHERE)->fetch();
 
 jsonResponse(
@@ -324,6 +339,7 @@ jsonResponse(
             'rooms' => (int) $summary['rooms'],
             'available' => (int) $summary['available'],
             'houses' => (int) $summary['houses'],
+            'apartments' => (int) $summary['apartments'],
             'min_price' => $summary['min_price'] !== null ? (float) $summary['min_price'] : null,
         ],
     ]

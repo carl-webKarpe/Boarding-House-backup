@@ -20,7 +20,7 @@ require_once __DIR__ . '/_landlord.php';
 
 const MAX_HOUSE_PHOTOS = 20;
 
-const HOUSE_LIST_SELECT = "SELECT bh.id, bh.name, bh.barangay, bh.city, bh.province, bh.address, bh.status, bh.availability_status,
+const HOUSE_LIST_SELECT = "SELECT bh.id, bh.property_type, bh.name, bh.barangay, bh.city, bh.province, bh.address, bh.status, bh.availability_status,
     bh.rejection_reason, bh.created_at, bh.updated_at,
     (SELECT COUNT(*) FROM rooms r WHERE r.boarding_house_id = bh.id) AS room_count,
     (SELECT COUNT(*) FROM rooms r WHERE r.boarding_house_id = bh.id AND r.status = 'available') AS available_rooms,
@@ -37,6 +37,7 @@ function formatHouseListItem(array $row): array {
     $types = array_filter(explode(',', (string) $row['room_types']));
     $row['room_types'] = array_values(array_map(fn ($t) => ROOM_TYPE_LABELS[$t] ?? $t, $types));
     $row['display_status'] = listingStatus($row['status'], $row['availability_status']);
+    $row['property_type_label'] = propertyTypeLabel($row['property_type']);
     return $row;
 }
 
@@ -46,6 +47,7 @@ function loadHouseDetails(int $id): array {
     $house = castRow($house, ['id', 'landlord_id', 'barangay_id'], ['latitude', 'longitude']);
     unset($house['approved_by']);
     $house['display_status'] = listingStatus($house['status'], $house['availability_status']);
+    $house['property_type_label'] = propertyTypeLabel($house['property_type'] ?? null);
 
     $images = $pdo->prepare('SELECT id, file_path, is_cover FROM boarding_house_images WHERE boarding_house_id = :id ORDER BY is_cover DESC, id');
     $images->execute([':id' => $id]);
@@ -113,6 +115,9 @@ function validateHouseForm(array $body, bool $creating): array {
     if (array_key_exists('availability_status', $body)) {
         $rules['availability_status'] = validateEnumValue($body['availability_status'], array_keys(AVAILABILITY_LABELS), 'Listing status');
     }
+    if ($creating || array_key_exists('property_type', $body)) {
+        $rules['property_type'] = validateEnumValue($body['property_type'] ?? 'boarding_house', array_keys(PROPERTY_TYPE_LABELS), 'Property type');
+    }
 
     $values = collectValidated($rules);
 
@@ -161,6 +166,10 @@ switch (requestMethod()) {
         $filter = queryString('status');
         if ($filter !== '') {
             $rows = array_values(array_filter($rows, fn ($r) => $r['display_status']['key'] === $filter));
+        }
+        $propertyType = queryString('property_type');
+        if (isset(PROPERTY_TYPE_LABELS[$propertyType])) {
+            $rows = array_values(array_filter($rows, fn ($r) => $r['property_type'] === $propertyType));
         }
         jsonResponse($rows);
 
@@ -214,14 +223,15 @@ switch (requestMethod()) {
         $values = validateHouseForm(requestBody(), true);
         $needsApproval = settingEnabled('require_listing_approval');
         $status = $needsApproval ? 'pending' : 'approved';
-        $pdo->prepare('INSERT INTO boarding_houses (landlord_id, name, description, address, barangay_id, barangay, city, province, location_note,
+        $pdo->prepare('INSERT INTO boarding_houses (landlord_id, property_type, name, description, address, barangay_id, barangay, city, province, location_note,
                 latitude, longitude, map_url, nearby_school, distance_note, contact_name, contact_number, contact_email, house_rules,
                 status, availability_status, approved_at)
-            VALUES (:landlord, :name, :description, :address, :barangay_id, :barangay, :city, :province, :location_note,
+            VALUES (:landlord, :property_type, :name, :description, :address, :barangay_id, :barangay, :city, :province, :location_note,
                 :latitude, :longitude, :map_url, :nearby_school, :distance_note, :contact_name, :contact_number, :contact_email, :house_rules,
                 :status, :availability, :approved_at)')
             ->execute([
                 ':landlord' => landlordId(),
+                ':property_type' => $values['property_type'] ?? 'boarding_house',
                 ':name' => $values['name'],
                 ':description' => $values['description'] ?? null,
                 ':address' => $values['address'],
@@ -245,14 +255,15 @@ switch (requestMethod()) {
             ]);
         $id = (int) $pdo->lastInsertId();
 
-        landlordLog('listing_create', 'New boarding house submitted: ' . $values['name'], 'boarding_house', $id);
+        $kind = strtolower(propertyTypeLabel($values['property_type'] ?? null));
+        landlordLog('listing_create', "New {$kind} submitted: " . $values['name'], 'boarding_house', $id);
         if ($needsApproval) {
             notifyAdmins('listing_submitted', 'Listing requires approval', landlordName() . ' submitted "' . $values['name'] . '" (' . $values['barangay'] . ', ' . $values['city'] . ').', '#/boarding-houses?status=pending');
         }
 
         jsonResponse(loadHouseDetails($id), $needsApproval
-            ? 'Boarding house saved. It will appear to students after an administrator approves it.'
-            : 'Boarding house saved and published.', 201);
+            ? ucfirst($kind) . ' saved. It will appear to students after an administrator approves it.'
+            : ucfirst($kind) . ' saved and published.', 201);
 
     case 'PUT':
     case 'PATCH':
@@ -281,7 +292,7 @@ switch (requestMethod()) {
         }
 
         $values = validateHouseForm(requestBody(), false);
-        $columns = ['name', 'description', 'address', 'barangay_id', 'barangay', 'city', 'province', 'location_note', 'latitude', 'longitude',
+        $columns = ['property_type', 'name', 'description', 'address', 'barangay_id', 'barangay', 'city', 'province', 'location_note', 'latitude', 'longitude',
             'map_url', 'nearby_school', 'distance_note', 'contact_name', 'contact_number', 'contact_email', 'house_rules', 'availability_status'];
         $sets = [];
         $params = [':id' => $id];

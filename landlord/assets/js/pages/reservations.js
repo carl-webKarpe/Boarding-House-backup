@@ -55,7 +55,7 @@ async function openDetails(id, list) {
         ${badge(r.status)}
       </div>
       ${details([
-        ['Boarding house', r.house_name],
+        ['Property', r.house_name],
         ['Room', `${r.room_number} · ${r.room_type_label}`],
         ['Rent', money(r.price)],
         ['Preferred move-in date', fmtDate(r.move_in_date)],

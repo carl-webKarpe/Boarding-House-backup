@@ -10,6 +10,7 @@ const TYPE_OPTIONS = [
   { value: 'shared', label: 'Shared room' },
   { value: 'dormitory', label: 'Dormitory' },
   { value: 'studio', label: 'Studio' },
+  { value: 'apartment', label: 'Apartment unit' },
 ];
 const STATUS_OPTIONS = [
   { value: 'available', label: 'Available' },

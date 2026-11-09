@@ -1,9 +1,11 @@
 /* ==========================================================================
-   Room form, shared by "Add Boarding House" (several room cards) and
+   Room form, shared by "Add Property" (several room cards) and
    Room Management (add / edit one room in a modal).
 
-   Single Room: monthly price for the whole room + vacant / occupied.
-   Shared Room: price per person, number of occupants, available slots.
+   Single Room:    monthly price for the whole room + vacant / occupied.
+   Shared Room:    price per person, number of occupants, available slots.
+   Apartment Unit: monthly price for the whole unit, most people allowed,
+                   vacant / occupied (one reservation takes the whole unit).
    ========================================================================== */
 
 import { api } from '../api.js';
@@ -18,9 +20,9 @@ export async function loadAmenities(force = false) {
 }
 
 /** Converts saved room data into the form's terms. */
-function toFormValues(room) {
+function toFormValues(room, defaultType = 'single') {
   if (!room) {
-    return { room_type: 'single', capacity: 2, available_slots: 1, single_state: 'vacant', availability: 'available', quantity: 1, amenity_ids: [] };
+    return { room_type: defaultType, capacity: defaultType === 'apartment' ? 4 : 2, available_slots: 1, single_state: 'vacant', availability: 'available', quantity: 1, amenity_ids: [] };
   }
   const type = formRoomType(room.room_type);
   const unavailable = room.status === 'maintenance';
@@ -45,24 +47,25 @@ const field = (name, label, control, { hint = '', required = false, span = '' } 
  *  - room: saved room (edit) or null (new)
  *  - showQuantity: "How many rooms like this?" (new rooms only)
  *  - showPhotos: photo picker (and saved photos when editing)
- * Returns { read(): {data, errors}, files(): File[], el }.
+ *  - defaultType: room type picked for a new room ('apartment' in an apartment)
+ * Returns { read(): {data, errors}, files(): File[], setType(type), el }.
  */
-export async function mountRoomForm(holder, { room = null, showQuantity = true, showPhotos = true, idPrefix = 'room' } = {}) {
+export async function mountRoomForm(holder, { room = null, showQuantity = true, showPhotos = true, idPrefix = 'room', defaultType = 'single' } = {}) {
   const amenities = await loadAmenities();
-  const v = toFormValues(room);
+  const v = toFormValues(room, defaultType);
   const id = (name) => `${idPrefix}-${name}`;
   const selected = new Set((v.amenity_ids || []).map(Number));
 
   setHtml(holder, html`
     <div class="space-y-5" data-room-form>
       <div class="grid gap-4 sm:grid-cols-2">
-        ${field(id('room_number'), 'Room name / number', html`<input id="${id('room_number')}" name="room_number" class="form-control" maxlength="50" required value="${v.room_number || ''}" placeholder="e.g. Room 1, Room A, Upper Floor 2" />`, { required: true })}
-        ${showQuantity ? field(id('quantity'), 'How many rooms like this?', html`<input id="${id('quantity')}" name="quantity" type="number" min="1" max="20" class="form-control" value="${v.quantity}" />`, { hint: 'Adds identical rooms numbered automatically (e.g. Room 1, Room 2, Room 3).' }) : ''}
+        ${field(id('room_number'), 'Room / unit name or number', html`<input id="${id('room_number')}" name="room_number" class="form-control" maxlength="50" required value="${v.room_number || ''}" placeholder="e.g. Room 1, Room A, Unit 1" />`, { required: true })}
+        ${showQuantity ? field(id('quantity'), 'How many like this?', html`<input id="${id('quantity')}" name="quantity" type="number" min="1" max="20" class="form-control" value="${v.quantity}" />`, { hint: 'Adds identical rooms or units numbered automatically (e.g. Room 1, Room 2 or Unit 1, Unit 2).' }) : ''}
       </div>
 
       <fieldset>
         <legend class="form-label">Room type <span class="text-rose-500">*</span></legend>
-        <div class="grid gap-2 sm:grid-cols-2">${ROOM_TYPE_OPTIONS.map((o) => html`
+        <div class="grid gap-2 sm:grid-cols-3">${ROOM_TYPE_OPTIONS.map((o) => html`
           <label class="choice-card">
             <input type="radio" name="${id('type')}" value="${o.value}" data-room-type ${v.room_type === o.value ? 'checked' : ''} />
             <span><span class="block font-semibold text-ink">${o.label}</span><span class="block text-xs text-slate-500">${o.hint}</span></span>
@@ -73,7 +76,10 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
         ${field(id('price'), html`<span data-price-label>Monthly rent (₱)</span>`, html`<input id="${id('price')}" name="price" type="number" min="100" max="100000" step="50" class="form-control" required value="${v.price ?? ''}" placeholder="e.g. 2500" />`, { required: true })}
         ${field(id('deposit'), 'Deposit (₱, optional)', html`<input id="${id('deposit')}" name="deposit" type="number" min="0" step="50" class="form-control" value="${v.deposit || ''}" placeholder="0" />`)}
 
-        <div data-single-only class="sm:col-span-2">
+        <div data-unit-only>
+          ${field(id('unit_capacity'), 'Most people allowed in the unit', html`<input id="${id('unit_capacity')}" name="unit_capacity" type="number" min="1" max="20" class="form-control" value="${v.room_type === 'apartment' ? v.capacity : 4}" />`, { required: true, hint: 'One tenant or family rents the whole unit.' })}
+        </div>
+        <div data-whole-only class="sm:col-span-2">
           ${field(id('single_state'), 'Availability', html`
             <select id="${id('single_state')}" name="single_state" class="form-control">
               <option value="vacant" ${v.single_state === 'vacant' ? 'selected' : ''}>Available (vacant)</option>
@@ -127,9 +133,10 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
   // Show the right fields for the room type.
   const syncType = () => {
     const type = $('[data-room-type]:checked', root)?.value || 'single';
-    $$('[data-single-only]', root).forEach((el) => el.classList.toggle('hidden', type !== 'single'));
+    $$('[data-whole-only]', root).forEach((el) => el.classList.toggle('hidden', type === 'shared'));
+    $$('[data-unit-only]', root).forEach((el) => el.classList.toggle('hidden', type !== 'apartment'));
     $$('[data-shared-only]', root).forEach((el) => el.classList.toggle('hidden', type !== 'shared'));
-    $('[data-price-label]', root).textContent = type === 'shared' ? 'Price per person / month (₱)' : 'Monthly rent (₱)';
+    $('[data-price-label]', root).textContent = type === 'shared' ? 'Price per person / month (₱)' : type === 'apartment' ? 'Monthly rent for the whole unit (₱)' : 'Monthly rent (₱)';
   };
   $$('[data-room-type]', root).forEach((r) => r.addEventListener('change', syncType));
   syncType();
@@ -167,10 +174,10 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
     const type = $('[data-room-type]:checked', root)?.value || 'single';
     const facts = {
       'Room': val('room_number'),
-      'Room type': type === 'single' ? 'Single room (whole room for one tenant)' : 'Shared room / bedspace',
-      'Monthly rent': val('price') ? `PHP ${val('price')}${type === 'shared' ? ' per person' : ''}` : '',
+      'Room type': { single: 'Single room (whole room for one tenant)', shared: 'Shared room / bedspace', apartment: 'Apartment unit (whole unit for one tenant or family)' }[type],
+      'Monthly rent': val('price') ? `PHP ${val('price')}${type === 'shared' ? ' per person' : type === 'apartment' ? ' for the whole unit' : ''}` : '',
       'Deposit': val('deposit') ? `PHP ${val('deposit')}` : '',
-      'Occupants': type === 'shared' ? val('capacity') : '1',
+      'Occupants': type === 'shared' ? val('capacity') : type === 'apartment' ? `up to ${val('unit_capacity')}` : '1',
       'Size': val('size_sqm') ? `${val('size_sqm')} square meters` : '',
       'Amenities': $$('[data-amenity]:checked', root).map((c) => c.closest('label')?.textContent?.trim()).filter(Boolean).join(', '),
     };
@@ -196,11 +203,12 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
     };
     if (showQuantity) data.quantity = val('quantity') || '1';
 
-    if (type === 'single') {
+    if (type === 'single' || type === 'apartment') {
       const state = val('single_state');
-      data.capacity = 1;
-      data.available_slots = state === 'occupied' ? 0 : 1;
+      data.capacity = type === 'apartment' ? val('unit_capacity') : 1;
+      data.available_slots = state === 'occupied' ? 0 : data.capacity;
       data.availability = state === 'unavailable' ? 'unavailable' : 'available';
+      if (type === 'apartment' && !(Number(data.capacity) >= 1 && Number(data.capacity) <= 20)) errors.unit_capacity = 'An apartment unit is for 1 to 20 people.';
     } else {
       data.capacity = val('capacity');
       data.available_slots = val('available_slots');
@@ -231,5 +239,11 @@ export async function mountRoomForm(holder, { room = null, showQuantity = true, 
     return Boolean(first);
   };
 
-  return { el: root, read, showErrors, files: () => (picker ? picker.files() : []), clearFiles: () => picker?.clear() };
+  /** Picks a room type (used when the landlord switches between boarding house and apartment). */
+  const setType = (type) => {
+    const radio = $(`[data-room-type][value="${type}"]`, root);
+    if (radio) { radio.checked = true; syncType(); }
+  };
+
+  return { el: root, read, showErrors, setType, files: () => (picker ? picker.files() : []), clearFiles: () => picker?.clear() };
 }

@@ -23,11 +23,12 @@ const ROOM_TYPE_LABELS = [
     'shared' => 'Shared Room',
     'dormitory' => 'Bedspace',
     'studio' => 'Studio',
+    'apartment' => 'Apartment Unit',
 ];
 
 $pdo = getDb();
 
-$houses = $pdo->query("SELECT bh.id, bh.name, bh.description, bh.address, bh.barangay, bh.city, bh.province,
+$houses = $pdo->query("SELECT bh.id, bh.property_type, bh.name, bh.description, bh.address, bh.barangay, bh.city, bh.province,
         bh.latitude, bh.longitude, bh.nearby_school, bh.distance_note, bh.contact_name, bh.contact_number, bh.house_rules, bh.availability_status,
         u.first_name, u.last_name, u.contact_number AS owner_contact,
         (SELECT i.file_path FROM boarding_house_images i WHERE i.boarding_house_id = bh.id ORDER BY i.is_cover DESC, i.id LIMIT 1) AS cover_image
@@ -80,6 +81,8 @@ foreach ($houses as $house) {
 
     $listings[] = [
         'id' => (int) $house['id'],
+        'propertyType' => $house['property_type'],
+        'propertyTypeLabel' => propertyTypeLabel($house['property_type']),
         'name' => $house['name'],
         'location' => implode(', ', array_filter([$house['barangay'], $house['city']])),
         'address' => implode(', ', array_filter([$house['address'], $house['barangay'], $house['city'], $house['province']])),

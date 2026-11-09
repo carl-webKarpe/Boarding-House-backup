@@ -96,7 +96,7 @@ $assetVersion = '20261015';
       <div class="ml-auto flex items-center gap-1 sm:gap-2">
         <a href="#/add-house" class="btn btn-primary btn-sm hidden sm:inline-flex">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-          Add Boarding House
+          Add Property
         </a>
         <div class="relative">
           <button id="notifButton" type="button" class="relative grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">

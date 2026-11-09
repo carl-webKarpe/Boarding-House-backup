@@ -51,6 +51,7 @@ const ROOM_TYPE_LABELS = [
     'shared' => 'Shared Room',
     'dormitory' => 'Bedspace',
     'studio' => 'Studio',
+    'apartment' => 'Apartment Unit',
 ];
 
 const AVAILABILITY_LABELS = [
@@ -127,6 +128,7 @@ function roomTypeFromInput(string $value): ?string {
         'shared' => 'shared',
         'dormitory', 'bedspace' => 'dormitory',
         'studio' => 'studio',
+        'apartment', 'unit' => 'apartment',
         default => null,
     };
 }

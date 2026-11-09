@@ -18,8 +18,8 @@ const NAV = [
   {
     title: 'Listings',
     items: [
-      { path: 'houses', label: 'My Boarding Houses', icon: 'house' },
-      { path: 'add-house', label: 'Add Boarding House', icon: 'plus' },
+      { path: 'houses', label: 'My Properties', icon: 'house' },
+      { path: 'add-house', label: 'Add Property', icon: 'plus' },
       { path: 'rooms', label: 'Room Management', icon: 'bed' },
     ],
   },
@@ -53,7 +53,7 @@ const PAGES = {
   profile: () => import('./pages/profile.js'),
 };
 
-const TITLES = { ...Object.fromEntries(NAV.flatMap((s) => s.items).map((i) => [i.path, i.label])), 'edit-house': 'Edit Boarding House' };
+const TITLES = { ...Object.fromEntries(NAV.flatMap((s) => s.items).map((i) => [i.path, i.label])), 'edit-house': 'Edit Property' };
 const NAV_ALIAS = { 'edit-house': 'houses' };
 const NOTIFICATION_LINKS = { booking_created: '#/reservations', inquiry: '#/messages', listing_status: '#/houses', account: '#/profile', chat: '#/chat' };
 

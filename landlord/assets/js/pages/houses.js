@@ -1,9 +1,9 @@
-/* My Boarding Houses: the landlord's own listings with view, edit, rooms, status and delete. */
+/* My Properties (boarding houses and apartments): the landlord's own listings with view, edit, rooms, status and delete. */
 
 import { api } from '../api.js';
 import {
   html, setHtml, icon, $, $$, num, fmtDate, money, badge, toast, confirmDialog, openModal, details, withLoading,
-  listingBadge, thumb, priceRange, assetUrl, AVAILABILITY_OPTIONS,
+  listingBadge, thumb, priceRange, assetUrl, AVAILABILITY_OPTIONS, isWholeUnit, PROPERTY_TYPE_OPTIONS, propertyBadge,
 } from '../ui.js';
 import { createListPage, actionButton } from '../../../../admin/assets/js/pages/_list.js';
 
@@ -52,7 +52,7 @@ export async function openHouseDetails(id, ctx, list) {
           <strong>Not approved:</strong> ${house.rejection_reason}<br />Edit the listing to fix it; it goes back to the administrator for approval.
         </div>` : ''}
       ${gallery(house.images)}
-      <div class="mt-5 flex flex-wrap items-center gap-2">${listingBadge(house.display_status)}
+      <div class="mt-5 flex flex-wrap items-center gap-2">${propertyBadge(house.property_type)}${listingBadge(house.display_status)}
         <span class="text-xs text-slate-400">Added ${fmtDate(house.created_at)}${house.updated_at ? ` · updated ${fmtDate(house.updated_at)}` : ''}</span></div>
       <div class="mt-5">${details([
         ['Complete address', house.address],
@@ -68,10 +68,10 @@ export async function openHouseDetails(id, ctx, list) {
       ])}</div>
       ${house.description ? html`<h3 class="mt-6 text-sm font-semibold">Description</h3><p class="mt-1 whitespace-pre-line text-sm text-slate-600">${house.description}</p>` : ''}
       ${house.house_rules ? html`<h3 class="mt-5 text-sm font-semibold">House rules</h3><p class="mt-1 whitespace-pre-line text-sm text-slate-600">${house.house_rules}</p>` : ''}
-      <h3 class="mt-6 text-sm font-semibold">Rooms (${num(house.rooms.length)})</h3>
+      <h3 class="mt-6 text-sm font-semibold">${house.property_type === 'apartment' ? 'Units' : 'Rooms'} (${num(house.rooms.length)})</h3>
       ${house.rooms.length ? html`<ul class="mt-2 divide-y divide-slate-100 rounded-2xl border border-slate-100">${house.rooms.map((r) => html`
         <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-          <span><strong>${r.room_number}</strong> <span class="text-slate-500">· ${r.room_type_label} · ${money(r.price)}${r.room_type === 'solo' ? '' : '/person'}</span></span>
+          <span><strong>${r.room_number}</strong> <span class="text-slate-500">· ${r.room_type_label} · ${money(r.price)}${isWholeUnit(r.room_type) ? '' : '/person'}</span></span>
           <span class="flex items-center gap-2 text-xs text-slate-500">${num(r.available_slots)} of ${num(r.capacity)} slot${r.capacity === 1 ? '' : 's'} free ${badge(r.status === 'maintenance' ? 'unavailable' : r.status, r.status === 'maintenance' ? 'Unavailable' : '')}</span>
         </li>`)}</ul>` : html`<p class="mt-1 text-sm text-slate-400">No rooms yet.</p>`}`,
     footer: html`
@@ -117,7 +117,7 @@ export function openStatusModal(house, onDone) {
 
 export async function deleteHouse(house, onDone) {
   const ok = await confirmDialog({
-    title: 'Delete this boarding house?',
+    title: `Delete this ${house.property_type === 'apartment' ? 'apartment' : 'boarding house'}?`,
     message: `"${house.name}" and all its rooms and photos will be removed permanently. Students will no longer see it. This cannot be undone.`,
     confirmText: 'Delete permanently',
     danger: true,
@@ -125,28 +125,32 @@ export async function deleteHouse(house, onDone) {
   });
   if (!ok) return;
   const res = await api.houses.remove(house.id);
-  toast(res.message || 'Boarding house deleted.');
+  toast(res.message || 'Listing deleted.');
   onDone?.();
 }
 
 export async function render(view, ctx) {
   createListPage(view, ctx, {
-    title: 'My Boarding Houses',
-    description: 'Only you can see and change these listings.',
-    headerActions: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Boarding House</a>`,
+    title: 'My Properties',
+    description: 'Your boarding houses and apartments. Only you can see and change these listings.',
+    headerActions: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Property</a>`,
     searchPlaceholder: 'Search by name, barangay or address…',
-    filters: [{ name: 'status', label: 'Status', options: STATUS_FILTER }],
+    filters: [
+      { name: 'property_type', label: 'Type', options: PROPERTY_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label })) },
+      { name: 'status', label: 'Status', options: STATUS_FILTER },
+    ],
     fetch: (query) => api.houses.list(query),
     columns: () => [
       {
-        key: 'name', label: 'Boarding house', primary: true,
+        key: 'name', label: 'Property', primary: true,
         render: (h) => html`<div class="flex items-center gap-3">${thumb(h.cover_image, h.name)}<div class="min-w-0">
           <p class="truncate font-semibold text-ink">${h.name}</p>
+          <p class="mt-0.5">${propertyBadge(h.property_type)}</p>
           <p class="truncate text-xs text-slate-500">${icon('pin', 'mr-0.5 inline h-3 w-3')}${h.barangay || h.address || '—'}${h.city ? `, ${h.city}` : ''}</p>
           <p class="text-[11px] text-slate-400">Added ${fmtDate(h.created_at)}</p></div></div>`,
       },
       { key: 'price', label: 'Monthly rent', className: 'whitespace-nowrap', render: (h) => priceRange(h.min_price, h.max_price) },
-      { key: 'room_types', label: 'Room type', render: (h) => (h.room_types.length ? html`<span class="text-sm">${h.room_types.map((t) => t.replace(' Room', '')).join(' · ')}</span>` : html`<span class="text-slate-400">No rooms yet</span>`) },
+      { key: 'room_types', label: 'Room / unit type', render: (h) => (h.room_types.length ? html`<span class="text-sm">${h.room_types.map((t) => t.replace(' Room', '')).join(' · ')}</span>` : html`<span class="text-slate-400">No rooms yet</span>`) },
       { key: 'available_rooms', label: 'Available', className: 'whitespace-nowrap', render: (h) => html`<span class="font-semibold">${num(h.available_rooms)}</span><span class="text-slate-400"> / ${num(h.room_count)}</span>` },
       { key: 'status', label: 'Status', render: (h) => html`${listingBadge(h.display_status)}${h.pending_reservations ? html`<span class="mt-1 block text-[11px] text-amber-700">${num(h.pending_reservations)} pending reservation${h.pending_reservations === 1 ? '' : 's'}</span>` : ''}` },
     ],
@@ -159,9 +163,9 @@ export async function render(view, ctx) {
     emptyState: (state) => html`
       <div class="flex flex-col items-center px-6 py-14 text-center">
         <span class="grid h-14 w-14 place-items-center rounded-2xl bg-primary-50 text-primary">${icon('house', 'h-6 w-6')}</span>
-        <p class="mt-4 font-semibold text-ink">${state.q || state.status ? 'No boarding houses match your filters' : 'You have no boarding houses yet'}</p>
-        <p class="mt-1 max-w-sm text-sm text-slate-500">${state.q || state.status ? 'Try another search or status.' : 'Add your first boarding house with photos, rooms, amenities and location.'}</p>
-        ${state.q || state.status ? '' : html`<a href="#/add-house" class="btn btn-primary mt-4">${icon('plus')} Add Boarding House</a>`}
+        <p class="mt-4 font-semibold text-ink">${state.q || state.status || state.property_type ? 'No listings match your filters' : 'You have no boarding houses or apartments yet'}</p>
+        <p class="mt-1 max-w-sm text-sm text-slate-500">${state.q || state.status || state.property_type ? 'Try another search, type or status.' : 'Add your first boarding house or apartment with photos, rooms, amenities and location.'}</p>
+        ${state.q || state.status || state.property_type ? '' : html`<a href="#/add-house" class="btn btn-primary mt-4">${icon('plus')} Add Property</a>`}
       </div>`,
     onAction: async (action, id, row, list) => {
       if (action === 'view') await openHouseDetails(id, ctx, list);

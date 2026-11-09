@@ -131,6 +131,17 @@ Landlords log in on the normal login page and land on `landlord/`.
 
 A boarding house that already has reservations cannot be deleted (the history is kept); set it to *Temporarily Unavailable* instead.
 
+### Boarding houses and apartments
+
+A listing is either a **Boarding House** (rooms and bedspaces) or an **Apartment** (`boarding_houses.property_type`).
+Apartments have **Apartment Units** (`rooms.room_type = 'apartment'`): one monthly price for the whole unit and a maximum
+number of people. One reservation takes the whole unit - when the landlord approves it the unit becomes occupied, and it is
+vacant again when the stay is completed or cancelled. Students can filter Browse Rooms by boarding houses or apartments,
+and the admin can filter Properties by type.
+
+**Existing database?** Run `database/migrate-apartments.sql` once (phpMyAdmin: select your database -> SQL or Import).
+It only adds the new column and room type; existing listings stay boarding houses, and running it twice is harmless.
+
 ### Student room listing (`php/browse-rooms.php`)
 
 Loaded from `api/rooms.php`: only rooms of **approved** boarding houses whose status is not *Temporarily Unavailable*. Each card shows the details on the left and a photo gallery (main photo + clickable thumbnails) on the right, stacked on phones, newest first with **Load more**, badges AVAILABLE / RESERVED / FULL. **More Details** shows the gallery, location and map, barangay, rent, room type, availability, amenities, description, house rules, nearby school, distance and the landlord. **Reserve** (student account) asks for confirmation and saves a *Pending* reservation; **Contact Landlord** saves a message for the landlord. The page checks every 30 seconds and offers to refresh when landlords change their listings.
@@ -303,7 +314,7 @@ BHsystem/
 │   └── admin/                    Admin REST API (see below)
 ├── assets/css/                   tenant.css (Browse Rooms, built with npm run build:tenant)
 ├── database/schema.sql, seed.sql, hosting-import.sql, migrate-landlord-dashboard.sql,
-│   migrate-tenants-payments-chat.sql, cleanup-demo-tenants.sql
+│   migrate-tenants-payments-chat.sql, migrate-apartments.sql, cleanup-demo-tenants.sql
 ├── security/                     config, database, session, CSRF, roles, validation,
 │                                 rate limiting, uploads, activity log, settings
 ├── setup/create-admin.php        First administrator setup

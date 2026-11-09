@@ -25,7 +25,7 @@ const ROOM_SELECT = "SELECT r.id, r.boarding_house_id, r.room_number, r.room_typ
 
 const ROOM_FROM = 'FROM rooms r JOIN boarding_houses bh ON bh.id = r.boarding_house_id';
 
-const ROOM_TYPES = ['solo', 'shared', 'dormitory', 'studio'];
+const ROOM_TYPES = ['solo', 'shared', 'dormitory', 'studio', 'apartment'];
 
 function formatRoom(array $row): array {
     $row = castRow($row, ['id', 'boarding_house_id', 'capacity', 'occupants'], ['price', 'deposit', 'size_sqm']);

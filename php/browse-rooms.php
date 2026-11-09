@@ -175,8 +175,8 @@ $assetVersion = '20261025';
     <section class="bg-brand pb-10 pt-8 text-white sm:pt-10">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-lime">Rooms near SIIT · Dapa, Surigao del Norte</p>
-        <h1 class="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">Find your room for the semester</h1>
-        <p class="mt-2 max-w-2xl text-sm text-white/75 sm:text-base">Compare prices, photos and amenities, then reserve or message the landlord — all in one place.</p>
+        <h1 class="mt-2 font-display text-3xl font-semibold leading-tight sm:text-4xl">Find your room or apartment</h1>
+        <p class="mt-2 max-w-2xl text-sm text-white/75 sm:text-base">Compare boarding houses and apartments: prices, photos and amenities, then reserve or message the landlord — all in one place.</p>
         <ul class="mt-5 flex flex-wrap gap-2 text-xs font-semibold sm:text-sm" id="summaryChips" aria-live="polite">
           <li class="rounded-full bg-white/10 px-3 py-1.5"><span class="skeleton-text">Loading rooms…</span></li>
         </ul>
@@ -184,11 +184,19 @@ $assetVersion = '20261025';
     </section>
 
     <div class="relative z-30 -mt-6 px-4 sm:px-6 lg:sticky lg:top-16 lg:px-8">
-      <form id="filters" class="mx-auto grid max-w-7xl gap-2 rounded-3xl border border-brand/10 bg-white p-3 shadow-card sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr_auto]" role="search" aria-label="Filter rooms">
+      <form id="filters" class="mx-auto grid max-w-7xl gap-2 rounded-3xl border border-brand/10 bg-white p-3 shadow-card sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto]" role="search" aria-label="Filter rooms">
         <label class="relative block">
           <span class="sr-only">Search</span>
           <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           <input type="search" name="q" placeholder="Boarding house, barangay or school" class="field pl-10" autocomplete="off" />
+        </label>
+        <label class="block">
+          <span class="sr-only">Property type</span>
+          <select name="property" class="field">
+            <option value="">Boarding houses &amp; apartments</option>
+            <option value="boarding_house">Boarding houses</option>
+            <option value="apartment">Apartments</option>
+          </select>
         </label>
         <label class="block">
           <span class="sr-only">Room type</span>
@@ -196,6 +204,7 @@ $assetVersion = '20261025';
             <option value="">All room types</option>
             <option value="solo">Single Room</option>
             <option value="shared">Shared Room</option>
+            <option value="apartment">Apartment Unit</option>
           </select>
         </label>
         <label class="block">

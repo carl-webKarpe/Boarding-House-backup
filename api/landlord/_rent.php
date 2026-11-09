@@ -22,7 +22,7 @@ const BOARDER_FROM = 'FROM bookings b JOIN users t ON t.id = b.tenant_id JOIN ro
     JOIN boarding_houses bh ON bh.id = r.boarding_house_id';
 
 function monthlyRent(string $roomType, float $price, int $occupants): float {
-    return in_array($roomType, ['solo', 'studio'], true) ? $price : $price * max(1, $occupants);
+    return isWholeUnit($roomType) ? $price : $price * max(1, $occupants);
 }
 
 /** "2026-10" -> "2026-10-01"; anything else -> this month. */

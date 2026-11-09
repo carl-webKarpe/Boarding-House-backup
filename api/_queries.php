@@ -84,7 +84,7 @@ function castRow(array $row, array $intFields = [], array $floatFields = []): ar
  */
 function adjustOccupancy(int $roomId, int $delta): void {
     $pdo = getDb();
-    $stmt = $pdo->prepare('SELECT capacity, occupants, status FROM rooms WHERE id = :id FOR UPDATE');
+    $stmt = $pdo->prepare('SELECT capacity, occupants, status, room_type FROM rooms WHERE id = :id FOR UPDATE');
     $stmt->execute([':id' => $roomId]);
     $room = $stmt->fetch();
     if (!$room) {
@@ -93,6 +93,13 @@ function adjustOccupancy(int $roomId, int $delta): void {
 
     $capacity = (int) $room['capacity'];
     $occupants = (int) $room['occupants'] + $delta;
+    // An apartment unit is rented whole: one reservation fills it, ending it frees it.
+    if ($room['room_type'] === 'apartment' && $delta !== 0) {
+        if ($delta > 0 && (int) $room['occupants'] > 0) {
+            throw new ApiException('This apartment unit is already occupied.', 409);
+        }
+        $occupants = $delta > 0 ? $capacity : 0;
+    }
     if ($delta > 0) {
         if ($room['status'] === 'maintenance') {
             throw new ApiException('This room is under maintenance and cannot accept tenants.', 409);

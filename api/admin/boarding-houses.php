@@ -17,7 +17,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/_admin.php';
 require_once __DIR__ . '/../../security/upload_security.php';
 
-const HOUSE_SELECT = "SELECT bh.id, bh.landlord_id, bh.name, bh.description, bh.address, bh.barangay, bh.city, bh.province,
+const HOUSE_SELECT = "SELECT bh.id, bh.landlord_id, bh.property_type, bh.name, bh.description, bh.address, bh.barangay, bh.city, bh.province,
     bh.latitude, bh.longitude, bh.nearby_school, bh.contact_number, bh.contact_email, bh.house_rules, bh.status,
     bh.rejection_reason, bh.approved_at, bh.created_at, bh.updated_at,
     u.id AS owner_user_id, u.first_name AS owner_first_name, u.last_name AS owner_last_name, u.username AS owner_username,
@@ -35,6 +35,7 @@ const HOUSE_FROM = 'FROM boarding_houses bh JOIN landlords l ON l.id = bh.landlo
 function formatHouse(array $row): array {
     $row = castRow($row, ['id', 'landlord_id', 'owner_user_id', 'room_count', 'available_rooms', 'total_capacity', 'total_occupants'], ['latitude', 'longitude', 'min_price', 'max_price']);
     $row['owner_name'] = fullName($row, 'owner_');
+    $row['property_type_label'] = propertyTypeLabel($row['property_type']);
     return $row;
 }
 
@@ -84,6 +85,9 @@ function validateHousePayload(array $body, bool $creating): array {
     }
     if (array_key_exists('status', $body)) {
         $rules['status'] = validateEnumValue($body['status'] ?? '', ['pending', 'approved', 'rejected', 'inactive'], 'Status');
+    }
+    if ($creating || array_key_exists('property_type', $body)) {
+        $rules['property_type'] = validateEnumValue($body['property_type'] ?? 'boarding_house', array_keys(PROPERTY_TYPE_LABELS), 'Property type');
     }
 
     $values = collectValidated($rules);
@@ -140,6 +144,11 @@ switch (requestMethod()) {
         if (in_array($status, ['pending', 'approved', 'rejected', 'inactive'], true)) {
             $where[] = 'bh.status = :status';
             $params[':status'] = $status;
+        }
+        $propertyType = queryString('property_type');
+        if (isset(PROPERTY_TYPE_LABELS[$propertyType])) {
+            $where[] = 'bh.property_type = :property_type';
+            $params[':property_type'] = $propertyType;
         }
         $landlordId = queryInt('landlord_id', 0, 0);
         if ($landlordId > 0) {
@@ -212,10 +221,11 @@ switch (requestMethod()) {
 
         $values = validateHousePayload(requestBody(), true);
         $status = $values['status'] ?? 'approved';
-        $stmt = $pdo->prepare('INSERT INTO boarding_houses (landlord_id, name, description, address, barangay, city, province, latitude, longitude, nearby_school, contact_number, contact_email, house_rules, status, approved_at, approved_by)
-            VALUES (:landlord_id, :name, :description, :address, :barangay, :city, :province, :latitude, :longitude, :nearby_school, :contact_number, :contact_email, :house_rules, :status, :approved_at, :approved_by)');
+        $stmt = $pdo->prepare('INSERT INTO boarding_houses (landlord_id, property_type, name, description, address, barangay, city, province, latitude, longitude, nearby_school, contact_number, contact_email, house_rules, status, approved_at, approved_by)
+            VALUES (:landlord_id, :property_type, :name, :description, :address, :barangay, :city, :province, :latitude, :longitude, :nearby_school, :contact_number, :contact_email, :house_rules, :status, :approved_at, :approved_by)');
         $stmt->execute([
             ':landlord_id' => $values['landlord_id'],
+            ':property_type' => $values['property_type'] ?? 'boarding_house',
             ':name' => $values['name'],
             ':description' => $values['description'] ?? null,
             ':address' => $values['address'],
@@ -235,7 +245,7 @@ switch (requestMethod()) {
         $id = (int) $pdo->lastInsertId();
         $house = loadHouse($id);
         adminLog('listing_create', 'Administrator added boarding house: ' . $house['name'], 'boarding_house', $id);
-        jsonResponse($house, 'Boarding house created.', 201);
+        jsonResponse($house, ucfirst(strtolower(propertyTypeLabel($house['property_type']))) . ' created.', 201);
 
     case 'PUT':
     case 'PATCH':
@@ -243,7 +253,7 @@ switch (requestMethod()) {
         $before = loadHouse($id);
         $values = validateHousePayload(requestBody(), false);
 
-        $columns = ['landlord_id', 'name', 'description', 'address', 'barangay', 'city', 'province', 'latitude', 'longitude', 'nearby_school', 'contact_number', 'contact_email', 'house_rules', 'status'];
+        $columns = ['landlord_id', 'property_type', 'name', 'description', 'address', 'barangay', 'city', 'province', 'latitude', 'longitude', 'nearby_school', 'contact_number', 'contact_email', 'house_rules', 'status'];
         $sets = [];
         $params = [':id' => $id];
         foreach ($columns as $column) {
@@ -274,17 +284,17 @@ switch (requestMethod()) {
         if ($newStatus !== $before['status']) {
             $labels = ['approved' => 'approved', 'rejected' => 'rejected', 'inactive' => 'deactivated', 'pending' => 'moved back to pending'];
             $action = ['approved' => 'listing_approve', 'rejected' => 'listing_reject'][$newStatus] ?? 'listing_update';
-            adminLog($action, 'Boarding house ' . $labels[$newStatus] . ': ' . $house['name'], 'boarding_house', $id);
+            adminLog($action, ucfirst(strtolower(propertyTypeLabel($house['property_type']))) . ' ' . $labels[$newStatus] . ': ' . $house['name'], 'boarding_house', $id);
             $message = 'Your boarding house "' . $house['name'] . '" was ' . $labels[$newStatus] . '.';
             if ($newStatus === 'rejected') {
                 $message .= ' Reason: ' . $values['rejection_reason'];
             }
             notifyUser($house['owner_user_id'], 'listing_status', 'Listing ' . $labels[$newStatus], $message);
-            jsonResponse($house, 'Boarding house ' . $labels[$newStatus] . '.');
+            jsonResponse($house, ucfirst(strtolower(propertyTypeLabel($house['property_type']))) . ' ' . $labels[$newStatus] . '.');
         }
 
         adminLog('listing_update', 'Administrator updated boarding house: ' . $house['name'], 'boarding_house', $id);
-        jsonResponse($house, 'Boarding house updated.');
+        jsonResponse($house, ucfirst(strtolower(propertyTypeLabel($house['property_type']))) . ' updated.');
 
     case 'DELETE':
         if (isset($_GET['image_id'])) {

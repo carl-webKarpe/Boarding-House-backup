@@ -242,9 +242,16 @@
     if (room.distance_m === null || room.distance_m === undefined) return "";
     return room.distance_m < 1000 ? `${room.distance_m} m from ${room.school}` : `${(room.distance_m / 1000).toFixed(1)} km from ${room.school}`;
   };
-  const isShared = (room) => room.room_type !== "solo" && room.room_type !== "studio";
+  const isShared = (room) => !["solo", "studio", "apartment"].includes(room.room_type);
+  const isUnit = (room) => room.room_type === "apartment";
+  const isApartment = (room) => room.house?.property_type === "apartment";
+  const apartmentTag = (room) => (isApartment(room) ? '<span class="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">Apartment</span>' : "");
   const priceLine = (room) => `${peso(room.price)}<span class="text-sm font-medium text-muted"> / ${isShared(room) ? "person / month" : "month"}</span>`;
   const slotsLine = (room) => {
+    if (isUnit(room)) {
+      if (room.availability === "full") return `Occupied right now · for up to ${plural(room.capacity, "person")}`;
+      return `Whole unit for up to ${plural(room.capacity, "person")}${room.availability === "reserved" ? " · reservation pending" : ""}`;
+    }
     if (room.availability === "full") return "No free slot right now";
     const free = `${plural(room.open_slots, "slot")} free of ${room.capacity}`;
     return room.availability === "reserved" ? `${free} · reservations pending` : free;
@@ -254,11 +261,15 @@
   const roomsLine = (room) => {
     if (!isGroup(room)) return room.room_number;
     const names = room.group.rooms.map((r) => r.room_number);
-    return `${room.group.count} rooms like this · ${names.length > 4 ? `${names[0]} – ${names[names.length - 1]}` : names.join(", ")}`;
+    return `${room.group.count} ${isUnit(room) ? "units" : "rooms"} like this · ${names.length > 4 ? `${names[0]} – ${names[names.length - 1]}` : names.join(", ")}`;
   };
   const cardSlotsLine = (room) => {
     if (!isGroup(room)) return slotsLine(room);
     const g = room.group;
+    if (isUnit(room)) {
+      const unitsFree = g.rooms.filter((r) => r.open_slots > 0).length;
+      return unitsFree ? `${plural(unitsFree, "unit")} free of ${g.count} · up to ${plural(room.capacity, "person")} each` : "All units occupied right now";
+    }
     if (!g.open_slots) return "No free slot right now";
     const roomsFree = g.rooms.filter((r) => r.open_slots > 0).length;
     return `${plural(g.open_slots, "slot")} free in ${plural(roomsFree, "room")} (${g.capacity} in total)`;
@@ -286,7 +297,7 @@
       <article class="room-card" data-room="${room.id}" aria-labelledby="room-${room.id}-title">
         <div class="order-2 flex flex-col p-5 sm:p-6 md:order-1">
           <div class="flex flex-wrap items-center gap-2">
-            ${badge(room.availability)}
+            ${badge(room.availability)}${apartmentTag(room)}
             <span class="text-xs text-muted">${esc(room.room_type_label)} · updated ${esc(timeAgo(room.updated_at))}</span>
           </div>
           <h3 id="room-${room.id}-title" class="mt-3 font-display text-xl font-semibold leading-snug text-brand">${esc(room.house.name)}</h3>
@@ -336,6 +347,7 @@
     return {
       q: String(data.get("q") || "").trim(),
       type: data.get("type") || "",
+      property: data.get("property") || "",
       max_price: data.get("max_price") || "",
       sort: data.get("sort") || "newest",
       available: data.get("available") ? "1" : "",
@@ -349,7 +361,7 @@
 
   function restoreFilters() {
     const params = new URLSearchParams(window.location.search);
-    ["q", "type", "max_price", "sort"].forEach((name) => { if (params.has(name) && filtersForm.elements[name]) filtersForm.elements[name].value = params.get(name); });
+    ["q", "property", "type", "max_price", "sort"].forEach((name) => { if (params.has(name) && filtersForm.elements[name]) filtersForm.elements[name].value = params.get(name); });
     if (params.get("available") === "1") filtersForm.elements.available.checked = true;
   }
 
@@ -357,11 +369,12 @@
     const chips = [
       `${plural(summary.rooms, "room")} listed`,
       `${summary.available} with free slots`,
-      `${plural(summary.houses, "boarding house")}`,
+      summary.apartments ? `${plural(summary.houses - summary.apartments, "boarding house")} · ${plural(summary.apartments, "apartment")}` : `${plural(summary.houses, "boarding house")}`,
     ];
     if (summary.min_price !== null) chips.push(`from ${peso(summary.min_price)}`);
     $("#summaryChips").innerHTML = chips.map((c) => `<li class="rounded-full bg-white/10 px-3 py-1.5">${esc(c)}</li>`).join("");
-    $("#resultsTitle").textContent = total === summary.rooms ? `All rooms (${total})` : `${plural(total, "room")} found`;
+    const word = filtersForm.elements.property?.value === "apartment" || filtersForm.elements.type?.value === "apartment" ? "unit" : "room";
+    $("#resultsTitle").textContent = total === summary.rooms ? `All rooms (${total})` : `${plural(total, word)} found`;
   }
 
   async function loadRooms({ reset = false } = {}) {
@@ -476,22 +489,23 @@
         ${galleryHtml(room.images, { height: "h-64 sm:h-96", alt: `${h.name} ${room.room_number}` })}
         <div class="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1.5fr_1fr]">
           <div>
-            <div class="flex flex-wrap items-center gap-2">${badge(room.availability)}<span class="text-sm text-muted">${esc(room.room_number)} · ${esc(room.room_type_label)}</span></div>
+            <div class="flex flex-wrap items-center gap-2">${badge(room.availability)}${apartmentTag(room)}<span class="text-sm text-muted">${esc(room.room_number)} · ${esc(room.room_type_label)}</span></div>
             <p class="mt-3 font-display text-3xl font-semibold text-ink">${priceLine(room)}</p>
             ${room.deposit ? `<p class="text-sm text-muted">Deposit ${peso(room.deposit)}</p>` : ""}
             <dl class="mt-5 grid gap-2 sm:grid-cols-2">
               ${fact("Availability", esc(slotsLine(room)))}
-              ${group?.count > 1 ? fact("Rooms like this", esc(group.rooms.map((r) => `${r.room_number} (${r.open_slots ? plural(r.open_slots, "slot") + " free" : "full"})`).join(", "))) : ""}
-              ${fact("Room type", esc(room.room_type_label))}
+              ${group?.count > 1 ? fact(isUnit(room) ? "Units like this" : "Rooms like this", esc(group.rooms.map((r) => `${r.room_number} (${r.open_slots ? (isUnit(room) ? "vacant" : plural(r.open_slots, "slot") + " free") : isUnit(room) ? "occupied" : "full"})`).join(", "))) : ""}
+              ${fact("Property", esc(h.property_type_label || "Boarding House"))}
+              ${fact(isUnit(room) ? "Unit type" : "Room type", esc(room.room_type_label))}
               ${fact("Barangay", esc(h.barangay))}
               ${fact("Nearby school", esc(h.nearby_school))}
               ${fact("Distance from school", esc(distanceText(room)))}
-              ${room.size_sqm ? fact("Room size", `${esc(room.size_sqm)} m²`) : ""}
+              ${room.size_sqm ? fact(isUnit(room) ? "Unit size" : "Room size", `${esc(room.size_sqm)} m²`) : ""}
             </dl>
             <h3 class="mt-6 font-display text-base font-semibold text-brand">Amenities</h3>
             ${room.amenities.length ? `<ul class="mt-2 grid gap-2 sm:grid-cols-2">${room.amenities.map((a) => `<li class="flex items-center gap-2 text-sm text-ink"><span class="grid h-6 w-6 place-items-center rounded-full bg-mint text-brand">${icon("check", "h-3.5 w-3.5")}</span>${esc(a)}</li>`).join("")}</ul>` : '<p class="mt-1 text-sm text-muted">The landlord has not listed amenities yet.</p>'}
             ${room.description ? `<h3 class="mt-6 font-display text-base font-semibold text-brand">Description</h3><p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink/80">${esc(room.description)}</p>` : ""}
-            ${h.description && h.description !== room.description ? `<h3 class="mt-6 font-display text-base font-semibold text-brand">About the boarding house</h3><p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink/80">${esc(h.description)}</p>` : ""}
+            ${h.description && h.description !== room.description ? `<h3 class="mt-6 font-display text-base font-semibold text-brand">About the ${isApartment(room) ? "apartment" : "boarding house"}</h3><p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink/80">${esc(h.description)}</p>` : ""}
             ${h.rules ? `<h3 class="mt-6 font-display text-base font-semibold text-brand">House rules</h3><p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink/80">${esc(h.rules)}</p>` : ""}
           </div>
           <aside class="space-y-5">
@@ -518,7 +532,7 @@
         </div>
         <div class="sticky bottom-0 flex flex-col gap-2 border-t border-brand/10 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
           <button type="button" class="btn-outline" data-contact="${room.id}">${icon("message")} Contact Landlord</button>
-          <button type="button" class="btn-lime" data-reserve="${room.id}" ${room.availability === "full" ? "disabled" : ""}>${icon("calendar")} ${room.availability === "full" ? "Room is full" : "Reserve / Book this room"}</button>
+          <button type="button" class="btn-lime" data-reserve="${room.id}" ${room.availability === "full" ? "disabled" : ""}>${icon("calendar")} ${room.availability === "full" ? (isUnit(room) ? "Unit is occupied" : "Room is full") : isUnit(room) ? "Reserve this unit" : "Reserve / Book this room"}</button>
         </div>`);
     } catch (error) {
       dlg.setContent(`<div class="p-8 text-center"><p class="font-semibold text-rose-700">${esc(error.message)}</p><button type="button" class="btn-outline mt-4" data-close>Close</button></div>`);
@@ -558,19 +572,19 @@
     const maxOccupants = Math.max(1, room.open_slots);
 
     const dlg = openDialog({
-      title: "Reserve / Book a room",
+      title: isUnit(room) ? "Reserve an apartment unit" : "Reserve / Book a room",
       subtitle: `${room.house.name} · ${room.room_number}`,
       content: `
         <form class="grid gap-4 p-5 sm:grid-cols-2 sm:p-6" novalidate data-reserve-form>
-          <div><label class="field-label" for="rs-house">Boarding house</label><input id="rs-house" class="field bg-cream" value="${esc(room.house.name)}" readonly /></div>
-          <div><label class="field-label" for="rs-room">Room</label><input id="rs-room" class="field bg-cream" value="${esc(`${room.room_number} · ${room.room_type_label} · ${peso(room.price)}`)}" readonly /></div>
+          <div><label class="field-label" for="rs-house">${isApartment(room) ? "Apartment" : "Boarding house"}</label><input id="rs-house" class="field bg-cream" value="${esc(room.house.name)}" readonly /></div>
+          <div><label class="field-label" for="rs-room">${isUnit(room) ? "Unit" : "Room"}</label><input id="rs-room" class="field bg-cream" value="${esc(`${room.room_number} · ${room.room_type_label} · ${peso(room.price)}`)}" readonly /></div>
           <div class="sm:col-span-2"><label class="field-label" for="rs-name">Full name</label><input id="rs-name" name="contact_name" class="field" maxlength="160" required value="${esc(me.name)}" autocomplete="name" /></div>
           <div><label class="field-label" for="rs-phone">Contact number</label><input id="rs-phone" name="contact_number" type="tel" class="field" maxlength="20" required placeholder="09XXXXXXXXX" value="${esc(me.phone)}" autocomplete="tel" /></div>
           <div><label class="field-label" for="rs-email">Email address</label><input id="rs-email" name="contact_email" type="email" class="field" maxlength="150" required value="${esc(me.email)}" autocomplete="email" /></div>
           <div><label class="field-label" for="rs-date">Preferred move-in date</label><input id="rs-date" name="move_in_date" type="date" class="field" required min="${todayIso()}" /></div>
           <div><label class="field-label" for="rs-occ">Number of occupants</label>
             <input id="rs-occ" name="occupants_count" type="number" class="field" min="1" max="${maxOccupants}" value="1" required ${maxOccupants === 1 ? "readonly" : ""} />
-            <p class="mt-1 text-xs text-muted">${plural(room.open_slots, "slot")} free in this room.</p></div>
+            <p class="mt-1 text-xs text-muted">${isUnit(room) ? `You reserve the whole unit (up to ${plural(room.capacity, "person")}).` : `${plural(room.open_slots, "slot")} free in this room.`}</p></div>
           <div class="sm:col-span-2"><label class="field-label" for="rs-msg">Message to the landlord <span class="font-normal text-muted">(optional)</span></label>
             <textarea id="rs-msg" name="message" rows="3" maxlength="1000" class="field" placeholder="e.g. I'm a first-year SIIT student. Is the deposit refundable?"></textarea></div>
           <p class="flex items-start gap-2 rounded-2xl bg-mint/60 p-3 text-xs text-brand sm:col-span-2">${icon("info", "mt-0.5 h-4 w-4 shrink-0")}Your reservation is sent as <strong>Pending</strong>. The landlord approves or rejects it, and you can follow the status in My Reservations.</p>

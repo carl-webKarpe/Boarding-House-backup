@@ -50,9 +50,13 @@ switch ($type) {
         jsonResponse(array_map(fn ($r) => ['id' => (int) $r['id'], 'name' => $r['name'], 'custom' => $r['created_by'] !== null], $stmt->fetchAll()));
 
     case 'houses':
-        $stmt = $pdo->prepare('SELECT id, name, barangay, city FROM boarding_houses WHERE landlord_id = :landlord ORDER BY name');
+        $stmt = $pdo->prepare('SELECT id, property_type, name, barangay, city FROM boarding_houses WHERE landlord_id = :landlord ORDER BY name');
         $stmt->execute([':landlord' => landlordId()]);
-        jsonResponse(array_map(fn ($r) => ['id' => (int) $r['id'], 'label' => $r['name'] . ' (' . ($r['barangay'] ?: $r['city']) . ')'], $stmt->fetchAll()));
+        jsonResponse(array_map(fn ($r) => [
+            'id' => (int) $r['id'],
+            'label' => $r['name'] . ' (' . ($r['barangay'] ?: $r['city']) . ')',
+            'property_type' => $r['property_type'],
+        ], $stmt->fetchAll()));
 
     default:
         throw new ApiException('Unknown option type.', 400);

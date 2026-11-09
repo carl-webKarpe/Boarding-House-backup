@@ -94,7 +94,8 @@ function distanceLabel(item) {
 
 function listingCardHTML(item) {
   const badgeClass = item.availability === "Available" ? "" : " listing-card__badge--soon";
-  const roomsText = item.rooms ? `${item.rooms} room${item.rooms === 1 ? "" : "s"} available` : "No rooms open right now";
+  const unit = item.propertyType === "apartment" ? "unit" : "room";
+  const roomsText = item.rooms ? `${item.rooms} ${unit}${item.rooms === 1 ? "" : "s"} available` : `No ${unit}s open right now`;
   return `
     <article class="listing-card reveal is-visible" data-id="${esc(item.id)}">
       <div class="listing-card__img-wrap">
@@ -105,7 +106,7 @@ function listingCardHTML(item) {
         <h3>${esc(item.name)}</h3>
         <span class="listing-card__loc">${esc(item.location)}</span>
         <span class="listing-card__price">${item.price === item.max_price ? "" : "from "}${currency(item.price)} <span>/ month</span></span>
-        <span class="listing-card__meta">${esc(item.roomType)} &middot; ${roomsText}</span>
+        <span class="listing-card__meta">${item.propertyType === "apartment" ? "Apartment &middot; " : ""}${esc(item.roomType)} &middot; ${roomsText}</span>
         <span class="listing-card__distance">\u{1F4CD} ${esc(distanceLabel(item))}</span>
         <span class="listing-card__amenities">${item.amenities.map(esc).join(" \u2022 ")}</span>
         <button type="button" class="listing-card__cta" data-view="${esc(item.id)}">View Details</button>
@@ -146,7 +147,7 @@ function applyFilters() {
 
   const hint = document.getElementById("searchHint");
   hint.textContent = filtered.length
-    ? `Showing ${filtered.length} boarding house${filtered.length === 1 ? "" : "s"} that match your search.`
+    ? `Showing ${filtered.length} listing${filtered.length === 1 ? "" : "s"} that match your search.`
     : "";
 
   document.getElementById("listings").scrollIntoView({ behavior: "smooth", block: "start" });

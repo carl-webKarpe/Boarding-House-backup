@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Add / Edit Boarding House.
+   Add / Edit Property (a boarding house or an apartment).
 
    Add:  details -> photos -> rooms (with amenities and room photos), saved
          one step after another with a progress dialog.
@@ -10,7 +10,7 @@
 import { api } from '../api.js';
 import {
   html, setHtml, icon, $, $$, toast, confirmDialog, openModal, pageHeader, listingBadge,
-  createImagePicker, savedPhotos, AVAILABILITY_OPTIONS, aiButton, runAi, fillWithUndo } from '../ui.js';
+  createImagePicker, savedPhotos, AVAILABILITY_OPTIONS, PROPERTY_TYPE_OPTIONS, aiButton, runAi, fillWithUndo } from '../ui.js';
 import { mountRoomForm, loadAmenities } from './room-form.js';
 
 const DEFAULT_SCHOOL = 'Siargao Island Institute of Technology (SIIT)';
@@ -80,7 +80,7 @@ function barangaySelect(groups, selectedId) {
  * ---------------------------------------------------------------------- */
 function progressDialog(steps) {
   const modal = openModal({
-    title: 'Saving your boarding house',
+    title: 'Saving your listing',
     subtitle: 'Please keep this page open.',
     size: 'sm',
     body: html`<ol class="progress-steps">${steps.map((s, i) => html`
@@ -118,17 +118,19 @@ export async function render(view, ctx) {
     contact_email: profile.email,
     nearby_school: DEFAULT_SCHOOL,
     availability_status: 'available',
+    property_type: ctx.params.get('type') === 'apartment' ? 'apartment' : 'boarding_house',
   };
+  const isApartment = () => (container.querySelector('[name="property_type"]:checked')?.value || v.property_type) === 'apartment';
 
   const container = document.createElement('div');
   view.replaceChildren(container);
 
   setHtml(container, html`
     ${pageHeader({
-      title: editing ? `Edit: ${house.name}` : 'Add Boarding House',
+      title: editing ? `Edit: ${house.name}` : 'Add Property',
       description: editing
         ? 'Changes are saved to the database and shown to students right away.'
-        : 'Fill in the details students need. Fields marked * are required.',
+        : 'Add a boarding house or an apartment. Fields marked * are required.',
       actions: editing ? html`${listingBadge(house.display_status)}<a href="#/rooms?house_id=${house.id}" class="btn btn-secondary">${icon('bed')} Manage Rooms</a>` : '',
     })}
     ${editing && house.status === 'rejected' && house.rejection_reason ? html`
@@ -144,15 +146,23 @@ export async function render(view, ctx) {
           <div><p class="form-label">${editing ? 'Add more photos' : 'Additional photos'}</p><div data-more-picker></div></div>
         </div>`)}
 
-      ${section(2, 'Boarding house information', '', html`
+      ${section(2, 'Property information', '', html`
+        <fieldset class="mb-5">
+          <legend class="form-label">Type of property <span class="text-rose-500">*</span></legend>
+          <div class="grid gap-2 sm:grid-cols-2">${PROPERTY_TYPE_OPTIONS.map((o) => html`
+            <label class="choice-card">
+              <input type="radio" name="property_type" value="${o.value}" ${(v.property_type || 'boarding_house') === o.value ? 'checked' : ''} />
+              <span><span class="block font-semibold text-ink">${o.label}</span><span class="block text-xs text-slate-500">${o.hint}</span></span>
+            </label>`)}</div>
+        </fieldset>
         <div class="grid gap-4 sm:grid-cols-2">
-          ${input('name', 'Boarding house name', { value: v.name, required: true, maxlength: 150, span: 'sm:col-span-2', placeholder: 'e.g. Lime Haven Boarding House' })}
+          ${input('name', html`<span data-name-label>Boarding house name</span>`, { value: v.name, required: true, maxlength: 150, span: 'sm:col-span-2', placeholder: 'e.g. Lime Haven Boarding House' })}
           ${input('contact_name', 'Landlord / contact name', { value: v.contact_name, required: true, maxlength: 160 })}
           ${input('contact_number', 'Contact number', { value: v.contact_number, required: true, type: 'tel', maxlength: 20, placeholder: '09XXXXXXXXX' })}
           ${input('contact_email', 'Email address', { value: v.contact_email, required: true, type: 'email', maxlength: 150, span: 'sm:col-span-2' })}
         </div>`)}
 
-      ${section(3, 'Location', 'Where students can find the boarding house.', html`
+      ${section(3, 'Location', 'Where students can find the property.', html`
         <div class="grid gap-4 sm:grid-cols-3">
           ${barangaySelect(groups, v.barangay_id)}
           ${input('municipality', 'Municipality', { value: v.city, readonly: true, maxlength: 0, hint: 'Filled in from the barangay.' })}
@@ -200,7 +210,7 @@ export async function render(view, ctx) {
           </div>
         </div>`)}
 
-      ${section(5, 'Listing status', editing ? '' : 'You can change this anytime from My Boarding Houses.', html`
+      ${section(5, 'Listing status', editing ? '' : 'You can change this anytime from My Properties.', html`
         <div class="grid gap-2 md:grid-cols-3">${AVAILABILITY_OPTIONS.map((o) => html`
           <label class="choice-card">
             <input type="radio" name="availability_status" value="${o.value}" ${v.availability_status === o.value ? 'checked' : ''} />
@@ -210,16 +220,16 @@ export async function render(view, ctx) {
 
       ${editing ? section(6, 'Rooms', '', html`
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-600">This boarding house has <strong>${house.rooms.length}</strong> room${house.rooms.length === 1 ? '' : 's'}. Add, edit, delete rooms and upload room photos in Room Management.</p>
+          <p class="text-sm text-slate-600">This ${house.property_type === 'apartment' ? 'apartment' : 'boarding house'} has <strong>${house.rooms.length}</strong> ${house.property_type === 'apartment' ? 'unit' : 'room'}${house.rooms.length === 1 ? '' : 's'}. Add, edit, delete rooms and upload room photos in Room Management.</p>
           <a href="#/rooms?house_id=${house.id}" class="btn btn-secondary shrink-0">${icon('bed')} Manage Rooms</a>
-        </div>`) : section(6, 'Rooms', 'Add each kind of room you rent out. Use "How many rooms like this?" for identical rooms.', html`
+        </div>`) : section(6, html`<span data-rooms-title>Rooms</span>`, 'Add each kind of room or unit you rent out. Use "How many rooms like this?" for identical ones.', html`
         <div data-room-cards></div>
         <p class="form-error hidden" data-error-for="rooms"></p>
-        <button type="button" class="btn btn-secondary mt-4 w-full sm:w-auto" data-add-room>${icon('plus')} Add another room</button>`, 'rooms')}
+        <button type="button" class="btn btn-secondary mt-4 w-full sm:w-auto" data-add-room>${icon('plus')} <span data-add-room-label>Add another room</span></button>`, 'rooms')}
 
       <div class="save-bar flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
         <a href="#/houses" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary" data-save>${icon('check')} ${editing ? 'Save changes' : 'Save boarding house'}</button>
+        <button type="submit" class="btn btn-primary" data-save>${icon('check')} ${editing ? 'Save changes' : html`<span data-save-label>Save boarding house</span>`}</button>
       </div>
     </form>`);
 
@@ -232,6 +242,7 @@ export async function render(view, ctx) {
     const button = event.currentTarget;
     const value = (name) => form.elements[name]?.value?.trim() || '';
     const facts = {
+      'Type of property': isApartment() ? 'Apartment (whole units for a tenant or family)' : 'Boarding house (rooms and bedspaces)',
       'Name': value('name'),
       'Barangay': form.elements.barangay_id?.selectedOptions[0]?.textContent?.trim() || '',
       'Municipality': value('municipality'),
@@ -246,6 +257,23 @@ export async function render(view, ctx) {
     fillWithUndo(button, [[form.elements.description, draft.description], [form.elements.house_rules, draft.house_rules || value('house_rules')]]);
     toast('AI draft added. Read it and change anything before saving.');
   });
+
+  /* Boarding house or apartment: wording, and the type of new rooms */
+  const syncPropertyType = (changed = false) => {
+    const apartment = isApartment();
+    const kind = apartment ? 'apartment' : 'boarding house';
+    $('[data-name-label]', form).textContent = apartment ? 'Apartment name' : 'Boarding house name';
+    form.elements.name.placeholder = apartment ? 'e.g. Lime Residences Apartment' : 'e.g. Lime Haven Boarding House';
+    const saveLabel = $('[data-save-label]', form);
+    if (saveLabel) saveLabel.textContent = `Save ${kind}`;
+    const roomsTitle = $('[data-rooms-title]', form);
+    if (roomsTitle) roomsTitle.textContent = apartment ? 'Apartment units' : 'Rooms';
+    const addLabel = $('[data-add-room-label]', form);
+    if (addLabel) addLabel.textContent = apartment ? 'Add another unit' : 'Add another room';
+    if (changed) roomCards.forEach((card) => card.form.setType(apartment ? 'apartment' : 'single'));
+    renumber();
+  };
+  $$('[name="property_type"]', form).forEach((radio) => radio.addEventListener('change', () => syncPropertyType(true)));
 
   /* Barangay -> municipality and province */
   const barangay = form.elements.barangay_id;
@@ -324,7 +352,7 @@ export async function render(view, ctx) {
   const roomCards = [];
   const cardsHolder = $('[data-room-cards]', form);
   const renumber = () => roomCards.forEach((card, i) => {
-    $('[data-room-title]', card.el).textContent = `Room ${i + 1}`;
+    $('[data-room-title]', card.el).textContent = `${isApartment() ? 'Unit' : 'Room'} ${i + 1}`;
     $('[data-remove-room]', card.el).classList.toggle('hidden', roomCards.length === 1);
   });
   const addRoomCard = async () => {
@@ -338,7 +366,7 @@ export async function render(view, ctx) {
       </div>
       <div class="p-4 sm:p-5" data-room-body></div>`);
     cardsHolder.appendChild(el);
-    const formApi = await mountRoomForm($('[data-room-body]', el), { idPrefix: key });
+    const formApi = await mountRoomForm($('[data-room-body]', el), { idPrefix: key, defaultType: isApartment() ? 'apartment' : 'single' });
     const card = { el, form: formApi };
     roomCards.push(card);
     $('[data-remove-room]', el).addEventListener('click', async () => {
@@ -358,6 +386,7 @@ export async function render(view, ctx) {
       card.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+  syncPropertyType();
 
   /* Unsaved changes warning */
   let dirty = false;
@@ -380,6 +409,7 @@ export async function render(view, ctx) {
   const readHouse = () => {
     const get = (n) => (form.elements[n]?.value ?? '').trim();
     return {
+      property_type: form.querySelector('[name="property_type"]:checked')?.value || 'boarding_house',
       name: get('name'),
       contact_name: get('contact_name'),
       contact_number: get('contact_number'),
@@ -400,7 +430,7 @@ export async function render(view, ctx) {
 
   const validate = (data) => {
     const errors = {};
-    if (!data.name) errors.name = 'Enter the boarding house name.';
+    if (!data.name) errors.name = `Enter the ${data.property_type === 'apartment' ? 'apartment' : 'boarding house'} name.`;
     if (!data.contact_name) errors.contact_name = 'Enter the landlord or contact name.';
     if (!/^(09\d{9}|\+639\d{9})$/.test(data.contact_number.replace(/[\s-]/g, ''))) errors.contact_number = 'Enter a mobile number like 09171234567.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact_email)) errors.contact_email = 'Enter a valid email address.';
@@ -408,7 +438,7 @@ export async function render(view, ctx) {
     if (!data.address) errors.address = 'Enter the complete address.';
     if (data.map_url && !/^https?:\/\//i.test(data.map_url)) errors.map_url = 'Paste a full link that starts with https://';
     if ((data.latitude === '') !== (data.longitude === '')) errors[data.latitude === '' ? 'latitude' : 'longitude'] = 'Enter both latitude and longitude, or leave both empty.';
-    if (!editing && !coverPicker.files().length) errors.cover = 'Choose a main photo of the boarding house.';
+    if (!editing && !coverPicker.files().length) errors.cover = `Choose a main photo of the ${data.property_type === 'apartment' ? 'apartment' : 'boarding house'}.`;
     return errors;
   };
 
@@ -474,7 +504,7 @@ export async function render(view, ctx) {
       const failures = await uploadHousePhotos(house.id);
       dirty = false;
       if (failures.length) toast(`Details saved, but some photos were not uploaded: ${failures.join(' ')}`, 'error');
-      else toast(res.message || 'Boarding house updated.');
+      else toast(res.message || 'Listing updated.');
       window.dispatchEvent(new CustomEvent('bh:data-changed'));
       ctx.navigate('houses', { view: house.id });
     } catch (error) {
@@ -485,7 +515,8 @@ export async function render(view, ctx) {
 
   async function saveNew(data, rooms) {
     const roomCount = rooms.reduce((sum, r) => sum + Number(r.data.quantity || 1), 0);
-    const progress = progressDialog(['Saving boarding house details', 'Uploading photos', `Adding ${roomCount} room${roomCount === 1 ? '' : 's'}`, 'Finishing']);
+    const unitWord = data.property_type === 'apartment' ? 'unit' : 'room';
+    const progress = progressDialog([`Saving ${data.property_type === 'apartment' ? 'apartment' : 'boarding house'} details`, 'Uploading photos', `Adding ${roomCount} ${unitWord}${roomCount === 1 ? '' : 's'}`, 'Finishing']);
     let houseId = 0;
     try {
       progress.set(0, 'active');

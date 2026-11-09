@@ -16,6 +16,14 @@ const priceRange = (h) => {
   return h.min_price === h.max_price ? money(h.min_price) : html`<span class="whitespace-nowrap">${money(h.min_price)} – ${money(h.max_price)}</span>`;
 };
 
+const PROPERTY_TYPES = [
+  { value: 'boarding_house', label: 'Boarding House' },
+  { value: 'apartment', label: 'Apartment' },
+];
+const propertyBadge = (type) => (type === 'apartment'
+  ? html`<span class="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">Apartment</span>`
+  : html`<span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Boarding House</span>`);
+
 const houseCell = (h) => html`
   <div class="flex min-w-0 items-center gap-3">
     ${h.cover_image
@@ -23,14 +31,15 @@ const houseCell = (h) => html`
       : html`<span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">${icon('house', 'h-5 w-5')}</span>`}
     <div class="min-w-0">
       <p class="truncate font-semibold text-ink">${h.name}</p>
-      <p class="truncate text-xs text-slate-500">${[h.barangay, h.city].filter(Boolean).join(', ')}</p>
+      <p class="truncate text-xs text-slate-500">${propertyBadge(h.property_type)} ${[h.barangay, h.city].filter(Boolean).join(', ')}</p>
     </div>
   </div>`;
 
 async function houseFields() {
   const landlords = await api.options('landlords');
   return [
-    { name: 'name', label: 'Boarding house name', required: true, span: 2, maxlength: 150 },
+    { name: 'property_type', label: 'Type of property', type: 'select', options: PROPERTY_TYPES, required: true },
+    { name: 'name', label: 'Property name', required: true, span: 2, maxlength: 150 },
     { name: 'landlord_id', label: 'Owner / landlord', type: 'select', required: true, placeholder: 'Select a landlord', options: landlords.map((l) => ({ value: l.id, label: l.label + (l.status === 'disabled' ? ' (disabled)' : '') })) },
     { name: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, required: true },
     { name: 'description', label: 'Description', type: 'textarea', maxlength: 5000, placeholder: 'What makes this place good for students?' },
@@ -51,10 +60,10 @@ export async function render(view, ctx) {
   const openForm = async (house, list) => {
     const creating = !house;
     formModal({
-      title: creating ? 'Add boarding house' : `Edit ${house.name}`,
+      title: creating ? 'Add boarding house or apartment' : `Edit ${house.name}`,
       subtitle: creating ? 'Listings created by an administrator can be published right away.' : `Added ${fmtDate(house.created_at)}`,
       fields: await houseFields(),
-      values: creating ? { status: 'approved', province: 'Surigao del Norte' } : house,
+      values: creating ? { status: 'approved', property_type: 'boarding_house', province: 'Surigao del Norte' } : house,
       size: 'lg',
       submitText: creating ? 'Create listing' : 'Save changes',
       onSubmit: async (data) => {
@@ -117,7 +126,7 @@ export async function render(view, ctx) {
 
   const remove = async (house, list) => {
     const ok = await confirmDialog({
-      title: 'Delete boarding house?',
+      title: `Delete this ${house.property_type === 'apartment' ? 'apartment' : 'boarding house'}?`,
       message: `This permanently deletes “${house.name}”, its ${house.room_count} room(s) and photos. Listings with booking history cannot be deleted — deactivate them instead.`,
       confirmText: 'Delete permanently',
       danger: true,
@@ -168,6 +177,7 @@ export async function render(view, ctx) {
 
         <h3 class="mb-3 mt-6 text-sm font-semibold text-ink">Details</h3>
         ${details([
+          ['Type of property', propertyBadge(house.property_type)],
           ['Owner / landlord', html`<a class="font-medium text-primary hover:underline" href="#/landlords?view=${house.owner_user_id}" data-close>${house.owner_name}</a><br><span class="text-xs text-slate-500">${house.owner_email}</span>`],
           ['Contact', [house.contact_number, house.contact_email].filter(Boolean).join(' · ') || house.owner_contact],
           ['Address', [house.address, house.barangay, house.city, house.province].filter(Boolean).join(', ')],
@@ -254,9 +264,10 @@ export async function render(view, ctx) {
   };
 
   const list = createListPage(view, ctx, {
-    title: 'Boarding Houses',
+    title: 'Boarding Houses & Apartments',
     description: 'Review new listings, keep information accurate and control what students can see.',
-    headerActions: html`<button type="button" class="btn btn-primary" data-add>${icon('plus')} Add boarding house</button>`,
+    headerActions: html`<button type="button" class="btn btn-primary" data-add>${icon('plus')} Add property</button>`,
+    filters: [{ name: 'property_type', label: 'Type', options: PROPERTY_TYPES }],
     tabKey: 'status',
     tabs: (c) => [
       { value: '', label: 'All', count: c.all_houses },
@@ -269,7 +280,7 @@ export async function render(view, ctx) {
     searchPlaceholder: 'Search by name, address, city or owner…',
     fetch: (query) => api.boardingHouses.list(query),
     columns: () => [
-      { key: 'name', label: 'Boarding house', sort: 'name', primary: true, render: houseCell },
+      { key: 'name', label: 'Property', sort: 'name', primary: true, render: houseCell },
       { key: 'owner_name', label: 'Owner', render: (h) => h.owner_name },
       { key: 'rooms', label: 'Rooms', sort: 'rooms', render: (h) => html`<span class="whitespace-nowrap"><span class="font-medium">${num(h.available_rooms)}</span><span class="text-slate-400"> / ${num(h.room_count)} free</span></span>` },
       { key: 'price', label: 'Monthly rent', sort: 'price', render: priceRange },

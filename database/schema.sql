@@ -121,6 +121,7 @@ CREATE TABLE barangays (
 CREATE TABLE boarding_houses (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   landlord_id INT UNSIGNED NOT NULL,
+  property_type ENUM('boarding_house', 'apartment') NOT NULL DEFAULT 'boarding_house',
   name VARCHAR(150) NOT NULL,
   description TEXT NULL,
   address VARCHAR(255) NOT NULL,
@@ -173,7 +174,8 @@ CREATE TABLE rooms (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   boarding_house_id INT UNSIGNED NOT NULL,
   room_number VARCHAR(60) NOT NULL,
-  room_type ENUM('solo', 'shared', 'dormitory', 'studio') NOT NULL DEFAULT 'shared',
+  -- apartment = a whole apartment unit rented by one tenant or family (capacity = most people allowed)
+  room_type ENUM('solo', 'shared', 'dormitory', 'studio', 'apartment') NOT NULL DEFAULT 'shared',
   price DECIMAL(10, 2) NOT NULL,
   deposit DECIMAL(10, 2) NOT NULL DEFAULT 0,
   capacity TINYINT UNSIGNED NOT NULL DEFAULT 1,

@@ -117,7 +117,7 @@ function validateRoomForm(array $body, bool $creating, ?array $existing = null):
     }
     if ($creating || array_key_exists('room_type', $body)) {
         $type = roomTypeFromInput((string) ($body['room_type'] ?? ''));
-        $rules['room_type'] = $type ? ['valid' => true, 'value' => $type] : ['valid' => false, 'message' => 'Choose Single Room or Shared Room.'];
+        $rules['room_type'] = $type ? ['valid' => true, 'value' => $type] : ['valid' => false, 'message' => 'Choose Single Room, Shared Room or Apartment Unit.'];
     }
     if ($creating || array_key_exists('price', $body)) {
         $rules['price'] = validateNumberValue($body['price'] ?? '', 'Monthly rent', 100, 100000);
@@ -147,6 +147,8 @@ function validateRoomForm(array $body, bool $creating, ?array $existing = null):
     $capacity = (int) ($values['capacity'] ?? $existing['capacity'] ?? 1);
     if ($type === 'solo' || $type === 'studio') {
         $capacity = 1;
+    } elseif ($type === 'apartment' && ($capacity < 1 || $capacity > 20)) {
+        throw new ApiException('An apartment unit is for 1 to 20 people.', 422, ['capacity' => 'Between 1 and 20.']);
     } elseif ($type === 'shared' && $capacity < 2) {
         throw new ApiException('A shared room is for at least 2 occupants.', 422, ['capacity' => 'At least 2.']);
     }
@@ -156,6 +158,9 @@ function validateRoomForm(array $body, bool $creating, ?array $existing = null):
     $open = (int) ($values['available_slots'] ?? $existingOpen);
     if ($open > $capacity) {
         throw new ApiException('Available slots cannot be more than the number of occupants.', 422, ['available_slots' => "Maximum {$capacity}."]);
+    }
+    if ($type === 'apartment') {
+        $open = $open > 0 ? $capacity : 0; // a unit is either vacant or occupied, never half
     }
     $values['occupants'] = $capacity - $open;
 
@@ -207,7 +212,7 @@ switch (requestMethod()) {
             $params[':house'] = $houseId;
         }
         $stmt = $pdo->prepare("SELECT r.id, r.boarding_house_id, r.room_number, r.room_type, r.price, r.deposit, r.capacity, r.occupants,
-                r.size_sqm, r.status, r.created_at, r.updated_at, bh.name AS house_name,
+                r.size_sqm, r.status, r.created_at, r.updated_at, bh.name AS house_name, bh.property_type,
                 (SELECT COUNT(*) FROM room_images i WHERE i.room_id = r.id) AS photo_count,
                 (SELECT i.file_path FROM room_images i WHERE i.room_id = r.id ORDER BY i.sort_order, i.id LIMIT 1) AS photo,
                 (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND b.status = 'pending') AS pending_reservations,

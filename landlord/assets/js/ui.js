@@ -23,10 +23,25 @@ export const AVAILABILITY_OPTIONS = [
 export const ROOM_TYPE_OPTIONS = [
   { value: 'single', label: 'Single Room', hint: 'One tenant. Monthly price for the whole room.' },
   { value: 'shared', label: 'Shared Room', hint: 'Several tenants. Price is per person per month.' },
+  { value: 'apartment', label: 'Apartment Unit', hint: 'Whole unit for one tenant or family. Monthly price for the unit.' },
 ];
 
-/** "single" / "shared" for the form, from the database room type. */
-export const formRoomType = (roomType) => (roomType === 'solo' || roomType === 'studio' ? 'single' : 'shared');
+/** Boarding house or apartment (boarding_houses.property_type). */
+export const PROPERTY_TYPE_OPTIONS = [
+  { value: 'boarding_house', label: 'Boarding House', hint: 'Rooms and bedspaces rented to students.' },
+  { value: 'apartment', label: 'Apartment', hint: 'Whole apartment units for a tenant or family.' },
+];
+
+/** "single" / "shared" / "apartment" for the form, from the database room type. */
+export const formRoomType = (roomType) => (roomType === 'apartment' ? 'apartment' : roomType === 'solo' || roomType === 'studio' ? 'single' : 'shared');
+
+/** "Apartment" / "Boarding House" tag for lists and details. */
+export const propertyBadge = (type) => (type === 'apartment'
+  ? html`<span class="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">Apartment</span>`
+  : html`<span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Boarding House</span>`);
+
+/** Rented as one whole space for one price (not per person). */
+export const isWholeUnit = (roomType) => ['solo', 'studio', 'apartment'].includes(roomType);
 
 /* ---------------------------------------------------------------------- *
  * Photo validation and pickers

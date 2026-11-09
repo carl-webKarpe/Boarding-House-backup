@@ -36,7 +36,7 @@ export async function render(view) {
     ${pageHeader({
       title: 'Dashboard',
       description: 'An overview of your boarding houses, rooms and reservations.',
-      actions: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Boarding House</a>`,
+      actions: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Property</a>`,
     })}
     ${verificationNotice()}
 
@@ -70,7 +70,7 @@ export async function render(view) {
             </a>
           </li>`)}</ul>`
         : emptyState({ title: 'No boarding houses yet', message: 'Add your first boarding house with photos, rooms and amenities.', iconName: 'house',
-          action: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Boarding House</a>` })}
+          action: html`<a href="#/add-house" class="btn btn-primary">${icon('plus')} Add Property</a>` })}
       </div>
 
       <div class="card overflow-hidden">

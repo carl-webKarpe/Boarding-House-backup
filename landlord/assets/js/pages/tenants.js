@@ -101,7 +101,7 @@ export async function render(view, ctx) {
       { value: 'all', label: 'All', count: c.all },
     ],
     searchPlaceholder: 'Search tenant, room or boarding house…',
-    filters: [{ name: 'house_id', label: 'Boarding house', options: houses.map((h) => ({ value: h.id, label: h.label })) }],
+    filters: [{ name: 'house_id', label: 'Property', options: houses.map((h) => ({ value: h.id, label: h.label })) }],
     fetch: (query) => api.tenants.list(query),
     columns: (state) => [
       {

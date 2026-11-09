@@ -2,7 +2,7 @@
 
 import { api } from '../api.js';
 import {
-  html, setHtml, icon, $, num, money, badge, toast, confirmDialog, openModal, withLoading, thumb, savedPhotos, createImagePicker,
+  html, setHtml, icon, $, num, money, badge, toast, confirmDialog, openModal, withLoading, thumb, savedPhotos, createImagePicker, isWholeUnit,
 } from '../ui.js';
 import { createListPage, actionButton } from '../../../../admin/assets/js/pages/_list.js';
 import { mountRoomForm } from './room-form.js';
@@ -16,19 +16,19 @@ const AVAILABILITY_BADGE = {
 /** Room add/edit dialog. */
 async function openRoomModal({ room = null, houses, houseId = '', onSaved }) {
   if (!room && !houses.length) {
-    toast('Add a boarding house first, then add its rooms.', 'error');
+    toast('Add a boarding house or apartment first, then add its rooms.', 'error');
     return;
   }
   const modal = openModal({
-    title: room ? `Edit ${room.room_number}` : 'Add room',
-    subtitle: room ? room.house_name : 'The room is added to the boarding house you choose.',
+    title: room ? `Edit ${room.room_number}` : 'Add room or unit',
+    subtitle: room ? room.house_name : 'The room or apartment unit is added to the property you choose.',
     size: 'lg',
     body: html`
       ${room ? '' : html`
         <div class="mb-5">
-          <label class="form-label" for="roomHouse">Boarding house <span class="text-rose-500">*</span></label>
+          <label class="form-label" for="roomHouse">Property <span class="text-rose-500">*</span></label>
           <select id="roomHouse" class="form-control">
-            ${houses.length > 1 ? html`<option value="">Choose a boarding house</option>` : ''}
+            ${houses.length > 1 ? html`<option value="">Choose a boarding house or apartment</option>` : ''}
             ${houses.map((h) => html`<option value="${h.id}" ${String(h.id) === String(houseId) ? 'selected' : ''}>${h.label}</option>`)}
           </select>
           <p class="form-error hidden" data-error-for="house_id"></p>
@@ -39,15 +39,18 @@ async function openRoomModal({ room = null, houses, houseId = '', onSaved }) {
       <button type="button" class="btn btn-primary" data-save-room>${icon('check')} ${room ? 'Save changes' : 'Add room'}</button>`,
   });
 
-  const roomForm = await mountRoomForm($('[data-room-holder]', modal.el), { room, showQuantity: !room, idPrefix: 'm' });
+  // A new room in an apartment starts as an Apartment Unit.
+  const typeFor = (id) => (houses.find((h) => String(h.id) === String(id))?.property_type === 'apartment' ? 'apartment' : 'single');
+  const roomForm = await mountRoomForm($('[data-room-holder]', modal.el), { room, showQuantity: !room, idPrefix: 'm', defaultType: typeFor(houseId || houses[0]?.id) });
   if (room) wireSavedRoomPhotos(modal.el, room);
+  $('#roomHouse', modal.el)?.addEventListener('change', (e) => roomForm.setType(typeFor(e.target.value)));
 
   $('[data-save-room]', modal.el).addEventListener('click', async (event) => {
     const { data, errors } = roomForm.read();
     const houseSelect = $('#roomHouse', modal.el);
     const houseError = $('[data-error-for="house_id"]', modal.el);
     if (houseSelect && !houseSelect.value) {
-      houseError.textContent = 'Choose the boarding house.';
+      houseError.textContent = 'Choose the boarding house or apartment.';
       houseError.classList.remove('hidden');
       houseSelect.classList.add('is-invalid');
       return;
@@ -136,11 +139,11 @@ export async function render(view, ctx) {
 
   createListPage(view, ctx, {
     title: 'Room Management',
-    description: 'Rooms of your boarding houses. Students only see rooms of approved, available listings.',
+    description: 'Rooms and apartment units of your properties. Students only see rooms of approved, available listings.',
     headerActions: html`<button type="button" class="btn btn-primary" data-add-room>${icon('plus')} Add room</button>`,
     searchPlaceholder: 'Search room name…',
     filters: [
-      { name: 'house_id', label: 'Boarding house', options: houses.map((h) => ({ value: h.id, label: h.label })) },
+      { name: 'house_id', label: 'Property', options: houses.map((h) => ({ value: h.id, label: h.label })) },
       { name: 'availability', label: 'Availability', options: [{ value: 'available', label: 'Available' }, { value: 'full', label: 'Full' }, { value: 'unavailable', label: 'Unavailable' }] },
     ],
     fetch: async (query) => {
@@ -158,7 +161,7 @@ export async function render(view, ctx) {
           <p class="truncate text-xs text-slate-500">${r.house_name}</p></div></div>`,
       },
       { key: 'room_type', label: 'Type', render: (r) => r.room_type_label },
-      { key: 'price', label: 'Rent', render: (r) => html`${money(r.price)}<span class="text-xs text-slate-400">${r.room_type === 'solo' || r.room_type === 'studio' ? '/month' : '/person'}</span>` },
+      { key: 'price', label: 'Rent', render: (r) => html`${money(r.price)}<span class="text-xs text-slate-400">${isWholeUnit(r.room_type) ? '/month' : '/person'}</span>` },
       { key: 'slots', label: 'Slots', render: (r) => html`<span class="font-semibold">${num(r.available_slots)}</span><span class="text-slate-400"> free of ${num(r.capacity)}</span>` },
       {
         key: 'availability', label: 'Availability',
@@ -178,7 +181,7 @@ export async function render(view, ctx) {
         <p class="mt-1 max-w-sm text-sm text-slate-500">${houses.length ? 'Add rooms with prices, amenities and photos so students can reserve them.' : 'Rooms belong to a boarding house.'}</p>
         ${houses.length
           ? html`<button type="button" class="btn btn-primary mt-4" data-add-room>${icon('plus')} Add room</button>`
-          : html`<a href="#/add-house" class="btn btn-primary mt-4">${icon('plus')} Add Boarding House</a>`}
+          : html`<a href="#/add-house" class="btn btn-primary mt-4">${icon('plus')} Add Property</a>`}
       </div>`,
     onAction: async (action, id, row, list) => {
       if (action === 'edit') {

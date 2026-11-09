@@ -20,7 +20,7 @@ const NAV = [
     items: [
       { path: 'users', label: 'Users', icon: 'users' },
       { path: 'landlords', label: 'Landlords', icon: 'landlord', badge: 'landlords' },
-      { path: 'boarding-houses', label: 'Boarding Houses', icon: 'house', badge: 'listings' },
+      { path: 'boarding-houses', label: 'Properties', icon: 'house', badge: 'listings' },
       { path: 'rooms', label: 'Rooms', icon: 'bed' },
       { path: 'bookings', label: 'Bookings', icon: 'calendar', badge: 'bookings' },
     ],

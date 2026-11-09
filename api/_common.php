@@ -188,3 +188,24 @@ function publicAssetUrl(string $path): string {
 
     return '../' . implode('/', array_map('rawurlencode', explode('/', ltrim($path, '/'))));
 }
+
+/** A listing is a boarding house (rooms / bedspaces) or an apartment (whole units). */
+const PROPERTY_TYPE_LABELS = [
+    'boarding_house' => 'Boarding House',
+    'apartment' => 'Apartment',
+];
+
+/**
+ * Room types rented as one whole space for one monthly price (not per person).
+ * An apartment unit can hold several people (capacity), but one reservation
+ * takes the whole unit.
+ */
+const WHOLE_UNIT_ROOM_TYPES = ['solo', 'studio', 'apartment'];
+
+function isWholeUnit(string $roomType): bool {
+    return in_array($roomType, WHOLE_UNIT_ROOM_TYPES, true);
+}
+
+function propertyTypeLabel(?string $type): string {
+    return PROPERTY_TYPE_LABELS[$type ?? ''] ?? PROPERTY_TYPE_LABELS['boarding_house'];
+}
