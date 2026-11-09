@@ -233,7 +233,7 @@ Have an older database with the 72 sample tenants? Run `database/cleanup-demo-te
 
 Seed dates are relative to the day you import it, so the charts always show recent activity. Re-import it any time to reset the demo.
 
-### AI assistant (Claude API) - optional
+### AI assistant (Google Gemini free tier or Claude API) - optional
 
 Five small AI helpers, all off until you add an API key:
 
@@ -247,12 +247,12 @@ Five small AI helpers, all off until you add an API key:
 
 Setup:
 
-1. Create a key at https://platform.claude.com (API keys) and add credit under Billing.
+1. Get a key: **free** - Google Gemini at https://aistudio.google.com ("Get API key"); or **paid** - Claude at https://platform.claude.com (API keys, with credit under Billing).
 2. Run `composer install` in the project folder (installs `anthropic-ai/sdk` and `guzzlehttp/guzzle` into `security/vendor/`; needs PHP 8.1+).
-3. Copy `security/ai.local.example.php` to `security/ai.local.php` and paste your key. This file is git-ignored - never commit or share the key.
+3. Copy `security/ai.local.example.php` to `security/ai.local.php`, set `'provider'` to `'gemini'` or `'claude'` and paste that provider's key. This file is git-ignored - never commit or share the key.
 4. On InfinityFree, upload `security/vendor/` and your `security/ai.local.php` too.
 
-Notes: the default model is `claude-opus-5-5`; set `'model' => 'claude-haiku-5-5'` in `ai.local.php` for a much lower cost.
+Notes: Gemini uses `gemini-flash-latest` (free tier: daily limits, and Google may use the text sent to improve its products). For Claude the default model is `claude-opus-5-5`; set `'model' => 'claude-haiku-5-5'` in `ai.local.php` for a much lower cost.
 Limits (per person per feature per hour, and per day for the whole site) are in the same file. Only listing facts and the message
 being answered are sent - never passwords, emails, phone numbers or ID documents. Problems are written to `storage/app.log`.
 

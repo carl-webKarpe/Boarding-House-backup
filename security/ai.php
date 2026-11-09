@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 /**
- * AI assistant features (Claude API, official Anthropic PHP SDK).
+ * AI assistant features. Two providers, chosen with 'provider' in security/ai.local.php:
+ *   'claude' - Claude API through the official Anthropic PHP SDK (paid credit)
+ *   'gemini' - Google Gemini API (has a free tier), plain HTTPS through Guzzle
  *
  *   1. Room finder        - students ask for a room in plain words (api/assistant.php)
  *   2. Listing writer     - landlords turn short notes into a description (api/landlord/ai-writer.php)
@@ -28,7 +30,10 @@ require_once __DIR__ . '/rate_limit.php';
 const BH_AI_CONFIG_FILE = __DIR__ . '/ai.local.php';
 const BH_AI_AUTOLOAD = __DIR__ . '/vendor/autoload.php';
 const BH_AI_SDK_FILE = __DIR__ . '/vendor/anthropic-ai/sdk/src/Client.php';
+const BH_AI_GUZZLE_FILE = __DIR__ . '/vendor/guzzlehttp/guzzle/src/Client.php';
 const BH_AI_DEFAULT_MODEL = 'claude-opus-5-5';
+const BH_AI_DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'; // Google's alias for its current Flash model
+const BH_AI_GEMINI_URL = 'https://generativelanguage.googleapis.com';
 
 /** The AI settings, or null when security/ai.local.php does not exist yet. */
 function aiConfig(): ?array {
@@ -44,8 +49,11 @@ function aiConfig(): ?array {
         return $config = null;
     }
     return $config = $loaded + [
+        'provider' => 'claude',
         'api_key' => '',
         'model' => BH_AI_DEFAULT_MODEL,
+        'gemini_api_key' => '',
+        'gemini_model' => BH_AI_DEFAULT_GEMINI_MODEL,
         'enabled' => true,
         'per_user_per_hour' => 20,
         'per_day' => 300,
@@ -54,9 +62,21 @@ function aiConfig(): ?array {
     ];
 }
 
+function aiUsesGemini(): bool {
+    return strtolower(trim((string) (aiConfig()['provider'] ?? ''))) === 'gemini';
+}
+
 /** Why the AI is not available ('' when it is). */
 function aiProblem(): string {
     $config = aiConfig();
+    if ($config !== null && $config['enabled'] && aiUsesGemini()) {
+        $key = trim((string) $config['gemini_api_key']);
+        return match (true) {
+            strlen($key) < 20 || stripos($key, 'your') !== false => 'Put your Gemini API key (from aistudio.google.com) in security/ai.local.php.',
+            !is_file(BH_AI_AUTOLOAD) || !is_file(BH_AI_GUZZLE_FILE) => 'Guzzle is not installed. Run "composer install" in the project folder and upload security/vendor.',
+            default => '',
+        };
+    }
     return match (true) {
         $config === null => 'security/ai.local.php is missing (copy security/ai.local.example.php).',
         !$config['enabled'] => "AI is turned off ('enabled' => false in security/ai.local.php).",
@@ -68,13 +88,13 @@ function aiProblem(): string {
     };
 }
 
-function aiLoadSdk(): bool {
+function aiLoadSdk(string $class = 'Anthropic\\Client'): bool {
     try {
         require_once __DIR__ . '/ai_host_compat.php';
         if (is_file(BH_AI_AUTOLOAD)) {
             require_once BH_AI_AUTOLOAD;
         }
-        return class_exists('Anthropic\\Client');
+        return class_exists($class);
     } catch (\Throwable $e) {
         writeLog('AI SDK could not be loaded: ' . $e->getMessage(), 'ERROR');
         return false;
@@ -94,19 +114,11 @@ function aiClient(): \Anthropic\Client {
         throw new \RuntimeException('The Anthropic SDK files are missing or incomplete (re-upload security/vendor).');
     }
     $config = aiConfig();
-    $http = [
-        'timeout' => (float) $config['timeout_seconds'],
-        'connect_timeout' => 10,
-    ];
-    // XAMPP's PHP often has no certificate list: use the one installed by Composer.
-    if (class_exists(\Composer\CaBundle\CaBundle::class)) {
-        $http['verify'] = \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath();
-    }
     return $client = new \Anthropic\Client(
         apiKey: trim((string) $config['api_key']),
         baseUrl: $config['base_url'] ?: null,
         requestOptions: [
-            'transporter' => new \GuzzleHttp\Client($http),
+            'transporter' => new \GuzzleHttp\Client(aiHttpOptions()),
             'maxRetries' => 1,
         ],
     );
@@ -150,8 +162,137 @@ function aiUntrusted(string $label, string $text): string {
     return "<untrusted source=\"{$label}\">\n{$clean}\n</untrusted>";
 }
 
+/** Guzzle options shared by both providers. */
+function aiHttpOptions(): array {
+    $http = [
+        'timeout' => (float) aiConfig()['timeout_seconds'],
+        'connect_timeout' => 10,
+    ];
+    // XAMPP's PHP often has no certificate list: use the one installed by Composer.
+    if (class_exists(\Composer\CaBundle\CaBundle::class)) {
+        $http['verify'] = \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath();
+    }
+    return $http;
+}
+
 /**
- * One request to Claude that must answer with JSON matching $schema.
+ * Gemini's responseSchema is an OpenAPI subset: upper-case types and no
+ * additionalProperties. Converts the JSON Schemas the features already use.
+ */
+function aiGeminiSchema(array $schema): array {
+    $out = [];
+    foreach ($schema as $key => $value) {
+        if ($key === 'additionalProperties') {
+            continue;
+        }
+        if ($key === 'type' && is_string($value)) {
+            $out['type'] = strtoupper($value);
+        } elseif ($key === 'properties' && is_array($value)) {
+            $out['properties'] = array_map(fn (array $prop): array => aiGeminiSchema($prop), $value);
+        } elseif ($key === 'items' && is_array($value)) {
+            $out['items'] = aiGeminiSchema($value);
+        } else {
+            $out[$key] = $value;
+        }
+    }
+    return $out;
+}
+
+/** The same contract as aiJson(), answered by Google Gemini (generateContent REST API). */
+function aiGeminiJson(string $feature, string $system, array $messages, array $schema, int $maxTokens, ?string $context): array {
+    $config = aiConfig();
+    if (!aiLoadSdk('GuzzleHttp\\Client')) {
+        writeLog("AI {$feature}: Guzzle could not be loaded (re-upload security/vendor).", 'ERROR');
+        return ['success' => false, 'status' => 504, 'message' => 'The AI assistant took too long or could not be reached. Please try again.'];
+    }
+
+    $systemParts = [['text' => $system]];
+    if ($context !== null) {
+        $systemParts[] = ['text' => $context];
+    }
+    $contents = array_map(fn (array $m): array => [
+        'role' => $m['role'] === 'assistant' ? 'model' : 'user',
+        'parts' => [['text' => (string) $m['content']]],
+    ], $messages);
+
+    $model = trim((string) $config['gemini_model']) ?: BH_AI_DEFAULT_GEMINI_MODEL;
+    $base = rtrim((string) ($config['base_url'] ?: BH_AI_GEMINI_URL), '/');
+    $url = $base . '/v1beta/models/' . rawurlencode($model) . ':generateContent';
+    $body = [
+        'systemInstruction' => ['parts' => $systemParts],
+        'contents' => $contents,
+        'generationConfig' => [
+            'responseMimeType' => 'application/json',
+            'responseSchema' => aiGeminiSchema($schema),
+            // Flash models may think first, and thinking counts toward this limit.
+            'maxOutputTokens' => max($maxTokens, 8192),
+        ],
+    ];
+
+    $http = new \GuzzleHttp\Client(aiHttpOptions() + ['http_errors' => false]);
+    try {
+        for ($attempt = 1; ; $attempt++) {
+            $response = $http->post($url, [
+                'headers' => ['x-goog-api-key' => trim((string) $config['gemini_api_key'])],
+                'json' => $body,
+            ]);
+            $status = $response->getStatusCode();
+            // One retry when Google is briefly overloaded.
+            if ($attempt === 1 && in_array($status, [500, 503], true)) {
+                usleep(800000);
+                continue;
+            }
+            break;
+        }
+    } catch (\Throwable $e) {
+        writeLog("AI {$feature}: Gemini " . get_class($e) . ' - ' . substr(str_replace(["\r", "\n"], ' ', $e->getMessage()), 0, 300), 'ERROR');
+        return ['success' => false, 'status' => 504, 'message' => 'The AI assistant took too long or could not be reached. Please try again.'];
+    }
+
+    $json = json_decode((string) $response->getBody(), true);
+    $json = is_array($json) ? $json : [];
+    if ($status !== 200) {
+        $error = $json['error'] ?? [];
+        $detail = 'HTTP ' . $status . ': ' . substr(str_replace(["\r", "\n"], ' ', (string) ($error['message'] ?? 'no details')), 0, 300);
+        writeLog("AI {$feature}: Gemini error " . ($error['status'] ?? 'unknown') . ' - ' . $detail, 'ERROR');
+        $message = match (true) {
+            $status === 429 => 'The free AI limit was reached. Please try again in a few minutes.',
+            $status === 401 || $status === 403 || stripos($detail, 'API key') !== false
+                => 'The AI assistant is not available right now (check the Gemini API key in security/ai.local.php).',
+            $status === 404 => 'The Gemini model in security/ai.local.php is not available. Try gemini-2.5-flash.',
+            $status >= 500 => 'The AI assistant is busy right now. Please try again in a minute.',
+            default => 'The AI assistant could not answer (' . $detail . ').',
+        };
+        return ['success' => false, 'status' => $status === 429 ? 429 : 502, 'message' => $message];
+    }
+
+    $candidate = $json['candidates'][0] ?? null;
+    $finish = (string) ($candidate['finishReason'] ?? '');
+    if (!empty($json['promptFeedback']['blockReason']) || in_array($finish, ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION'], true)) {
+        writeLog("AI {$feature}: Gemini declined the request (" . ($json['promptFeedback']['blockReason'] ?? $finish) . ').', 'WARN');
+        return ['success' => false, 'status' => 422, 'message' => 'The AI assistant cannot help with that request. Please rephrase it.'];
+    }
+    if ($finish === 'MAX_TOKENS') {
+        writeLog("AI {$feature}: Gemini answer was cut off.", 'WARN');
+        return ['success' => false, 'status' => 502, 'message' => 'The AI answer was too long. Please ask a shorter question.'];
+    }
+
+    $text = '';
+    foreach ($candidate['content']['parts'] ?? [] as $part) {
+        if (empty($part['thought']) && isset($part['text'])) {
+            $text .= $part['text'];
+        }
+    }
+    $data = json_decode($text, true);
+    if (!is_array($data)) {
+        writeLog("AI {$feature}: the Gemini answer was not valid JSON.", 'ERROR');
+        return ['success' => false, 'status' => 502, 'message' => 'The AI assistant gave an unexpected answer. Please try again.'];
+    }
+    return ['success' => true, 'data' => $data];
+}
+
+/**
+ * One request to the AI that must answer with JSON matching $schema.
  *
  * @param array<int, array{role: string, content: string}> $messages
  * @return array{success: bool, data?: array, message?: string, status?: int}
@@ -160,6 +301,9 @@ function aiJson(string $feature, string $system, array $messages, array $schema,
     if (!aiReady()) {
         writeLog('AI not available: ' . aiProblem(), 'WARN');
         return ['success' => false, 'status' => 503, 'message' => 'The AI assistant is not set up on this server yet.'];
+    }
+    if (aiUsesGemini()) {
+        return aiGeminiJson($feature, $system, $messages, $schema, $maxTokens, $cacheableContext);
     }
 
     $config = aiConfig();
