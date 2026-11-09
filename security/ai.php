@@ -32,7 +32,7 @@ const BH_AI_AUTOLOAD = __DIR__ . '/vendor/autoload.php';
 const BH_AI_SDK_FILE = __DIR__ . '/vendor/anthropic-ai/sdk/src/Client.php';
 const BH_AI_GUZZLE_FILE = __DIR__ . '/vendor/guzzlehttp/guzzle/src/Client.php';
 const BH_AI_DEFAULT_MODEL = 'claude-opus-5-5';
-const BH_AI_DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'; // Google's alias for its current Flash model
+const BH_AI_DEFAULT_GEMINI_MODEL = 'gemini-flash-lite-latest'; // Google's alias for its current Flash-Lite model (fast, no thinking)
 const BH_AI_GEMINI_URL = 'https://generativelanguage.googleapis.com';
 
 /** The AI settings, or null when security/ai.local.php does not exist yet. */

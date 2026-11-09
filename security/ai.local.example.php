@@ -28,8 +28,9 @@ return [
 
     // Google Gemini API key (from aistudio.google.com)
     'gemini_api_key' => 'your-gemini-key-here',
-    // gemini-flash-latest always points to Google's current Flash model.
-    'gemini_model' => 'gemini-flash-latest',
+    // gemini-flash-lite-latest always points to Google's current Flash-Lite model (fast).
+    // If it is slow or missing, open api/admin/ai-test.php as admin to see which models work.
+    'gemini_model' => 'gemini-flash-lite-latest',
 
     // Claude API key (starts with sk-ant-)
     'api_key' => 'sk-ant-your-key-here',

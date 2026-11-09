@@ -252,7 +252,7 @@ Setup:
 3. Copy `security/ai.local.example.php` to `security/ai.local.php`, set `'provider'` to `'gemini'` or `'claude'` and paste that provider's key. This file is git-ignored - never commit or share the key.
 4. On InfinityFree, upload `security/vendor/` and your `security/ai.local.php` too.
 
-Notes: Gemini uses `gemini-flash-latest` (free tier: daily limits, and Google may use the text sent to improve its products). For Claude the default model is `claude-opus-5-5`; set `'model' => 'claude-haiku-5-5'` in `ai.local.php` for a much lower cost.
+Notes: Gemini uses `gemini-flash-lite-latest` (test the connection as admin at `api/admin/ai-test.php`) (free tier: daily limits, and Google may use the text sent to improve its products). For Claude the default model is `claude-opus-5-5`; set `'model' => 'claude-haiku-5-5'` in `ai.local.php` for a much lower cost.
 Limits (per person per feature per hour, and per day for the whole site) are in the same file. Only listing facts and the message
 being answered are sent - never passwords, emails, phone numbers or ID documents. Problems are written to `storage/app.log`.
 
