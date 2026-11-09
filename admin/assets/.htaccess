@@ -1,0 +1,8 @@
+# Browsers must check for a newer copy of these scripts and styles on every visit
+# (unchanged files are answered with a quick "304 Not Modified"). Without this, a
+# browser can mix old and new JavaScript files after an update.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|mjs|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
