@@ -139,8 +139,10 @@ number of people. One reservation takes the whole unit - when the landlord appro
 vacant again when the stay is completed or cancelled. Students can filter Browse Rooms by boarding houses or apartments,
 and the admin can filter Properties by type.
 
-**Existing database?** Run `database/migrate-apartments.sql` once (phpMyAdmin: select your database -> SQL or Import).
-It only adds the new column and room type; existing listings stay boarding houses, and running it twice is harmless.
+**Existing database?** Nothing to do: the first time the site connects, `security/database.php` adds the new column and
+room type by itself (and writes `storage/schema_version.txt` so it does not check again). If the database user may not change
+tables, the log says so - then run `database/migrate-apartments.sql` once (phpMyAdmin: select your database -> SQL or Import).
+Existing listings stay boarding houses; nothing is deleted.
 
 ### Student room listing (`php/browse-rooms.php`)
 
